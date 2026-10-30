@@ -55,6 +55,8 @@ Codex CLI에서는 `$cofa-triage`처럼 명시적으로 호출할 수 있습니�
 
 Skill은 작업 지침이고, MCP는 AI가 호출할 수 있는 도구 연결입니다. 이 키트의 MCP는 같은 작업 환경에서 Python 프로세스로 실행됩니다. HTTP 서버, 포트 공개, 외부 계정, API 키가 없습니다. 버전 1.3.0의 제공 도구는 여섯 가지입니다.
 
+**도구를 매번 직접 고를 필요는 없습니다.** MCP가 연결돼 현재 도구 목록에 나타나면 Codex가 설명과 입력 조건을 보고 필요한 도구를 선택하도록 요청할 수 있습니다. README의 시작 요청에 이 지시를 포함했습니다. 키트를 `git clone`하는 것과 MCP 연결은 별개이며, 미연결이면 CLI·기존 도구로 진행합니다. 일반적인 스킬 선택과 MCP 도구 선택 방식은 OpenAI의 [스킬 활성화](https://developers.openai.com/plugins/concepts/skills)와 [도구 호출](https://developers.openai.com/plugins/concepts/mcp-server) 문서를 확인했습니다. 실제 Cofa에서의 탐색·연결·선택 성공을 실측했다는 뜻은 아닙니다.
+
 | 도구 | 읽는 것 | 결과 |
 |---|---|---|
 | `workspace_check` | 지정 작업 폴더의 요구사항 파일 | 미완료 선언·누락 파일·근거 경로 확인 |
