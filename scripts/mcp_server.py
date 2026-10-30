@@ -21,6 +21,27 @@ TOOLS = [
      'inputSchema': {'type': 'object', 'properties': {
          'path': {'type': 'string'}, 'encoding': {'type': 'string', 'enum': ['utf-8-sig', 'cp949'], 'default': 'utf-8-sig'},
          'max_rows': {'type': 'integer', 'minimum': 1, 'maximum': 10000, 'default': 10000}}, 'required': ['path'], 'additionalProperties': False},
+     'annotations': {'readOnlyHint': True, 'destructiveHint': False, 'openWorldHint': False}},
+    {'name': 'semiconductor_yield',
+     'description': 'Compute weighted passed/tested counts by confirmed groups. Reject duplicate row keys and invalid counts; not a quality acceptance decision.',
+     'inputSchema': {'type': 'object', 'properties': {
+         'path': {'type': 'string'},
+         'group_by': {'type': 'array', 'items': {'type': 'string'}, 'minItems': 1, 'maxItems': 16},
+         'key': {'type': 'array', 'items': {'type': 'string'}, 'minItems': 1, 'maxItems': 16},
+         'tested_col': {'type': 'string', 'default': 'tested'}, 'passed_col': {'type': 'string', 'default': 'passed'},
+         'encoding': {'type': 'string', 'enum': ['utf-8-sig', 'cp949'], 'default': 'utf-8-sig'},
+         'max_rows': {'type': 'integer', 'minimum': 1, 'maximum': 10000, 'default': 10000}},
+         'required': ['path', 'group_by', 'key'], 'additionalProperties': False},
+     'annotations': {'readOnlyHint': True, 'destructiveHint': False, 'openWorldHint': False}},
+    {'name': 'spc_monitor',
+     'description': 'Evaluate one ordered measurement stream against a frozen prefix I-MR baseline. Flags need review; they are not product defects or proven root causes.',
+     'inputSchema': {'type': 'object', 'properties': {
+         'path': {'type': 'string'}, 'value_col': {'type': 'string'}, 'time_col': {'type': 'string'},
+         'baseline_count': {'type': 'integer', 'minimum': 3, 'maximum': 10000},
+         'series_cols': {'type': 'array', 'items': {'type': 'string'}, 'minItems': 1, 'maxItems': 16},
+         'encoding': {'type': 'string', 'enum': ['utf-8-sig', 'cp949'], 'default': 'utf-8-sig'},
+         'max_rows': {'type': 'integer', 'minimum': 1, 'maximum': 10000, 'default': 10000}},
+         'required': ['path', 'value_col', 'time_col', 'baseline_count'], 'additionalProperties': False},
      'annotations': {'readOnlyHint': True, 'destructiveHint': False, 'openWorldHint': False}}
 ]
 
@@ -36,6 +57,21 @@ def local_path(root, value):
     if not path.is_relative_to(root) or not path.is_file():
         raise ValueError('path must be a file inside the workspace')
     return path
+
+
+def column_name(value):
+    if not isinstance(value, str) or not value.strip() or ',' in value or len(value) > 256:
+        raise ValueError('column names must be nonempty strings without commas, at most 256 characters')
+    return value
+
+
+def column_list(value):
+    if not isinstance(value, list) or not 1 <= len(value) <= 16:
+        raise ValueError('column list must contain 1 to 16 names')
+    names = [column_name(item) for item in value]
+    if len(names) != len(set(names)):
+        raise ValueError('column list contains duplicates')
+    return ','.join(names)
 
 
 def call_tool(root, name, args):
@@ -55,6 +91,28 @@ def call_tool(root, name, args):
         if encoding not in ('utf-8-sig', 'cp949') or type(rows) is not int or not 1 <= rows <= 10000:
             raise ValueError('invalid encoding or max_rows')
         command = ['profile', str(path), '--format', 'csv', '--encoding', encoding, '--max-rows', str(rows)]
+    elif name in ('semiconductor_yield', 'spc_monitor'):
+        extra = {'group_by', 'key', 'tested_col', 'passed_col'} if name == 'semiconductor_yield' else {'value_col', 'time_col', 'baseline_count', 'series_cols'}
+        if set(args) - ({'path', 'encoding', 'max_rows'} | extra):
+            raise ValueError('unknown argument')
+        path = local_path(root, args.get('path'))
+        encoding = args.get('encoding', 'utf-8-sig')
+        rows = args.get('max_rows', 10000)
+        if encoding not in ('utf-8-sig', 'cp949') or type(rows) is not int or not 1 <= rows <= 10000:
+            raise ValueError('invalid encoding or max_rows')
+        if name == 'semiconductor_yield':
+            command = ['semi', 'yield', str(path), '--group-by', column_list(args.get('group_by')),
+                       '--key', column_list(args.get('key')), '--tested-col', column_name(args.get('tested_col', 'tested')),
+                       '--passed-col', column_name(args.get('passed_col', 'passed'))]
+        else:
+            count = args.get('baseline_count')
+            if type(count) is not int or not 3 <= count <= rows:
+                raise ValueError('baseline_count must be an integer between 3 and max_rows')
+            command = ['semi', 'spc', str(path), '--value-col', column_name(args.get('value_col')),
+                       '--time-col', column_name(args.get('time_col')), '--baseline-count', str(count)]
+            if 'series_cols' in args:
+                command.extend(['--series-cols', column_list(args['series_cols'])])
+        command.extend(['--encoding', encoding, '--max-rows', str(rows)])
     else:
         raise ValueError('unknown tool')
     # Disk-backed capture avoids unbounded process-output memory. The CLI has its own input bounds.
@@ -106,7 +164,7 @@ class Server:
             self.ready = False
             result = {'protocolVersion': version if version in VERSIONS else VERSIONS[0],
                       'capabilities': {'tools': {'listChanged': False}},
-                      'serverInfo': {'name': 'cofa-local', 'version': '1.0.0'}}
+                      'serverInfo': {'name': 'cofa-local', 'version': '1.1.0'}}
         elif method == 'ping':
             result = {}
         elif not self.ready:

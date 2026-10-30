@@ -8,6 +8,7 @@ from pathlib import Path
 from . import __version__
 from .core import (KitError, append_log, check_workspace, doctor, init_workspace,
                    profile_file, report_workspace, run_check)
+from .semiconductor import column_list, spc_summary, yield_summary
 
 
 def parser() -> argparse.ArgumentParser:
@@ -34,6 +35,24 @@ def parser() -> argparse.ArgumentParser:
     run.add_argument("--timeout", type=float, default=30)
     run.add_argument("--max-output-bytes", type=int, default=65_536)
     run.add_argument("arguments", nargs=argparse.REMAINDER, help="-- COMMAND ARG ... (no shell inserted)")
+    semi = commands.add_parser("semi", help="Count-based inspection pass rates and exploratory frozen-baseline I-MR")
+    analyses = semi.add_subparsers(dest="analysis", required=True)
+    for name in ("yield", "spc"):
+        analysis = analyses.add_parser(name)
+        analysis.add_argument("file")
+        analysis.add_argument("--encoding", choices=["utf-8-sig", "cp949"], default="utf-8-sig")
+        analysis.add_argument("--max-rows", type=int, default=100_000, help="Reject larger inputs; never return partial aggregates")
+        analysis.add_argument("--output", help="Write to a NEW file without overwriting")
+        if name == "yield":
+            analysis.add_argument("--group-by", required=True, help="Comma-separated grouping columns")
+            analysis.add_argument("--key", required=True, help="Comma-separated unique inspection key columns; duplicates fail")
+            analysis.add_argument("--tested-col", default="tested")
+            analysis.add_argument("--passed-col", default="passed")
+        else:
+            analysis.add_argument("--value-col", required=True)
+            analysis.add_argument("--time-col", required=True)
+            analysis.add_argument("--baseline-count", type=int, required=True)
+            analysis.add_argument("--series-cols", help="Constant identity columns, comma-separated; default checks known identity columns present")
     for name in ("check", "report"):
         command = commands.add_parser(name, help="Check required evidence paths" if name == "check" else "Render actual recorded evidence as Markdown")
         command.add_argument("--workspace", required=True)
@@ -62,6 +81,16 @@ def main(argv: list[str] | None = None) -> int:
             arguments = args.arguments[1:] if args.arguments[:1] == ["--"] else args.arguments
             result = run_check(args.workspace, args.criterion_id, arguments, timeout=args.timeout, max_output_bytes=args.max_output_bytes)
             exit_code = 0 if result["ok"] else 1
+        elif args.command == "semi":
+            if args.analysis == "yield":
+                result = yield_summary(args.file, group_by=column_list(args.group_by), key=column_list(args.key),
+                                       tested_col=args.tested_col, passed_col=args.passed_col,
+                                       encoding=args.encoding, max_rows=args.max_rows)
+            else:
+                result = spc_summary(args.file, value_col=args.value_col, time_col=args.time_col,
+                                     baseline_count=args.baseline_count,
+                                     series_cols=column_list(args.series_cols) if args.series_cols is not None else None,
+                                     encoding=args.encoding, max_rows=args.max_rows)
         else:
             result = report_workspace(args.workspace, args.manifest)
         output = result if isinstance(result, str) else json.dumps(result, ensure_ascii=False, indent=2, allow_nan=False)

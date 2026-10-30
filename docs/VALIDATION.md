@@ -1,12 +1,12 @@
 # 검증 결과와 남은 범위
 
-검증일: 2026-10-30. 개발·실행 환경은 Windows, Python 3.10.7이다. 이 기록은 준비 키트의 확인 결과이며 대회 과제의 검증 결과가 아니다.
+검증일: 2026-10-30, 키트 버전 1.1.0. 개발·실행 환경은 Windows, Python 3.10.7이다. 이 기록은 준비 키트의 확인 결과이며 대회 과제의 검증 결과가 아니다.
 
 ## 실행한 검사
 
 ```text
 python -m unittest discover -s tests -v
-33 tests: 32 passed, 1 skipped
+49 tests: 48 passed, 1 skipped
 ```
 
 건너뛴 1개는 Windows 계정에서 심볼릭 링크를 만들 권한이 없어 실행하지 못한 경로 이탈 검사다. 다른 경로 이탈·존재하는 외부 파일 접근 거부·파일 보존 검사는 실행했다. 이 환경에서 symlink 방어가 실행 검증됐다고 표시하지 않는다.
@@ -19,10 +19,17 @@ python -m unittest discover -s tests -v
 - 스킬 설치 dry-run, 반복 설치, 충돌 시 사용자 파일과 기존 내용 보존.
 - MCP stdio 초기화, 도구 목록, 실제 CSV 분석과 요구사항 검사, 오류 뒤 세션 유지.
 - 잘못된 JSON·요청 ID·도구 이름·입력 경로 처리.
+- 가중 검사 통과율 손계산, 복합키 중복·결측·비정상 수량·0 분모, 전체 집계의 행 수 한도 처리.
+- I-MR 손계산, 감시 데이터에 영향받지 않는 기준 한계, 기준→감시 경계의 이동범위, 상수열·시간순서·혼합 계열 처리.
+- 반도체 MCP 두 도구의 실제 CLI 연결과 잘못된 옵션 거부.
 
-네 스킬은 OpenAI 제공 `skill-creator/scripts/quick_validate.py`에서 모두 `Skill is valid!` 결과를 얻었다. 검증용 PyYAML은 개발용 제외 폴더에만 설치했으며 배포 키트 실행 의존성이 아니다.
+다섯 스킬은 OpenAI 제공 `skill-creator/scripts/quick_validate.py`에서 모두 `Skill is valid!` 결과를 얻었다. 검증용 PyYAML은 개발용 제외 폴더에만 설치했으며 배포 키트 실행 의존성이 아니다.
+
+[상세 매뉴얼](MANUAL.md)의 합성 연습 코드블록을 별도 임시 작업 폴더에서 실행했다. 실제 테스트 3개, 검토 전 `check=1`, 검토 후 `check=0`, 보고서 생성과 기존 파일 보호 동작을 확인했다. 반도체 합성 예제의 독립 계산 예상값은 [expected.json](../examples/semiconductor/expected.json)에 있다. 실제 생산 자료나 설비 검증 결과가 아니다.
 
 별도의 합성 상황 검토에서는 triage가 실제 CSV의 중복·결측만 사실로 인정하고 업무 규칙을 실무자에게 확인하도록 정리하는지 확인했다. explain은 이미 제출 확정 후 서술형이 진행 중인 상황에서 답안 작성을 진행하지 않았다. 이 검토는 현재 개발 세션에서의 지침 적용 검토이며, 시험용 Sol 환경의 응답 품질을 실측한 것은 아니다.
+
+반도체 스킬의 별도 사례 검토에서는 TOOL-A/TOOL-B의 관측 통과율 차이를 계산하되, 서로 다른 lot를 검사한 자료만으로 장비 우수성이나 불량 원인을 확정하지 않는지 확인했다. 새 작업 폴더에 다섯 스킬을 설치한 뒤 반도체 스킬의 상대 참조 3개가 모두 설치된 파일로 연결되는 것도 확인했다.
 
 ## 아직 검증하지 못한 것
 
@@ -39,4 +46,4 @@ python -m unittest discover -s tests -v
 
 `run`은 보안 샌드박스가 아니며, 사용자가 지정한 명령을 실행한다. timeout은 직접 실행한 자식 프로세스까지만 종료한다. 대회에서 허용된 로컬 일회성 검증에 사용한다. 서버·백그라운드 자손 프로세스 실행용으로 사용하지 않는다.
 
-MCP는 직접 작성한 작은 stdio 구현으로, 이 키트의 읽기 전용 도구 두 개만 제공한다. 전체 MCP 기능을 구현한 범용 SDK가 아니며 실제 클라이언트 호환성은 별도 확인이 필요하다. 기반 규격: [MCP 수명주기](https://modelcontextprotocol.io/specification/2025-11-25/basic/lifecycle), [도구](https://modelcontextprotocol.io/specification/2025-11-25/server/tools), [stdio 전송](https://modelcontextprotocol.io/specification/2025-11-25/basic/transports).
+MCP는 직접 작성한 작은 stdio 구현으로, 이 키트의 읽기 전용 도구 네 개만 제공한다. 전체 MCP 기능을 구현한 범용 SDK가 아니며 실제 클라이언트 호환성은 별도 확인이 필요하다. 기반 규격: [MCP 수명주기](https://modelcontextprotocol.io/specification/2025-11-25/basic/lifecycle), [도구](https://modelcontextprotocol.io/specification/2025-11-25/server/tools), [stdio 전송](https://modelcontextprotocol.io/specification/2025-11-25/basic/transports).

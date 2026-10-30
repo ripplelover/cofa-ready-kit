@@ -87,7 +87,8 @@ class MCPTest(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             replies = [json.loads(x) for x in result.stdout.splitlines()]
             self.assertEqual([x['id'] for x in replies], [1, 2, 3, 4])
-            self.assertEqual(len(replies[1]['result']['tools']), 2)
+            self.assertEqual({tool['name'] for tool in replies[1]['result']['tools']},
+                             {'workspace_check', 'profile_csv', 'semiconductor_yield', 'spc_monitor'})
             self.assertFalse(replies[2]['result']['isError'], replies[2])
             self.assertIsInstance(json.loads(replies[2]['result']['content'][0]['text']), dict)
             self.assertTrue(replies[3]['result']['isError'])
@@ -175,6 +176,56 @@ class MCPTest(unittest.TestCase):
             for path in ('../outside.csv', str(outside)):
                 with self.subTest(path=path), self.assertRaises(ValueError):
                     module.local_path(root, path)
+
+    def test_semiconductor_yield_tool_uses_weighted_counts_and_rejects_duplicate_keys(self):
+        module = load_script('mcp_server')
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / 'counts.csv').write_text('lot,tool,tested,passed\nL1,A,100,99\nL2,A,2,1\n', encoding='utf-8')
+            args = {'path': 'counts.csv', 'group_by': ['tool'], 'key': ['lot']}
+            reply = module.call_tool(root, 'semiconductor_yield', args)
+            self.assertFalse(reply['isError'], reply)
+            data = json.loads(reply['content'][0]['text'])
+            self.assertEqual(data['totals']['tested'], 102)
+            self.assertAlmostEqual(data['totals']['pass_rate_pct'], 10000 / 102)
+            (root / 'counts.csv').write_text('lot,tool,tested,passed\nL1,A,100,99\nL1,A,2,1\n', encoding='utf-8')
+            self.assertTrue(module.call_tool(root, 'semiconductor_yield', args)['isError'])
+
+    def test_spc_tool_freezes_prefix_and_includes_boundary_moving_range(self):
+        module = load_script('mcp_server')
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / 'sensor.csv').write_text(
+                'timestamp,value,tool\n2026-01-01T00:00:00,10,A\n2026-01-01T00:01:00,11,A\n'
+                '2026-01-01T00:02:00,10,A\n2026-01-01T00:03:00,14,A\n', encoding='utf-8')
+            reply = module.call_tool(root, 'spc_monitor', {'path': 'sensor.csv', 'value_col': 'value',
+                'time_col': 'timestamp', 'baseline_count': 3, 'series_cols': ['tool']})
+            self.assertFalse(reply['isError'], reply)
+            data = json.loads(reply['content'][0]['text'])
+            self.assertAlmostEqual(data['baseline']['mean'], 31 / 3)
+            self.assertEqual(data['evaluation'][0]['moving_range'], 4)
+            self.assertTrue(data['evaluation'][0]['i_signal'])
+            self.assertTrue(data['evaluation'][0]['mr_signal'])
+
+    def test_semiconductor_tool_invalid_options_do_not_run(self):
+        module = load_script('mcp_server')
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / 'data.csv').write_text('a\n1\n', encoding='utf-8')
+            cases = [
+                ('semiconductor_yield', {'group_by': 'tool', 'key': ['id']}),
+                ('semiconductor_yield', {'group_by': ['tool'], 'key': []}),
+                ('semiconductor_yield', {'group_by': ['tool', 'tool'], 'key': ['id']}),
+                ('semiconductor_yield', {'group_by': ['tool'], 'key': ['id'], 'tested_col': []}),
+                ('spc_monitor', {'value_col': 'v', 'time_col': 't', 'baseline_count': True}),
+                ('spc_monitor', {'value_col': 'v', 'time_col': 't', 'baseline_count': 2}),
+                ('spc_monitor', {'value_col': 'v', 'time_col': 't', 'baseline_count': 3, 'series_cols': ['a,b']}),
+                ('spc_monitor', {'value_col': 'v', 'time_col': 't', 'baseline_count': 3, 'output': 'unexpected.json'}),
+            ]
+            for name, args in cases:
+                with self.subTest(name=name, args=args), self.assertRaises(ValueError):
+                    module.call_tool(root, name, {'path': 'data.csv', **args})
+            self.assertFalse((root / 'unexpected.json').exists())
 
 
 if __name__ == '__main__':

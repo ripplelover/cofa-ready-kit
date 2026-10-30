@@ -82,3 +82,16 @@ python scripts/cofa.py report --workspace work/practice --output work/practice/e
 `run`의 종료코드는 0이면 실행 관찰상 성공, 1이면 실행 실패·시간 초과·인식된 무효 테스트 결과, 2이면 입력·파일 처리 오류입니다. 0도 요구사항 충족을 보증하지 않습니다. `report --output` 역시 기존 파일을 덮어쓰지 않으므로 새 경로를 지정하세요.
 
 정확한 전체 옵션은 `python scripts/cofa.py --help`와 하위 명령의 `--help`를 사용합니다.
+
+## 반도체 검사 집계·계측 데이터
+
+버전 1.1.0부터 다음 두 명령을 제공합니다. 먼저 열의 의미, 검사 모집단, 개체 키, 공정 조건을 확인하세요.
+
+```bash
+python scripts/cofa.py semi yield examples/semiconductor/yield_clean.csv --group-by tool_id --key lot_id,wafer_id
+python scripts/cofa.py semi spc examples/semiconductor/measurements.csv --value-col value --time-col timestamp --baseline-count 25
+```
+
+`semi yield`는 검사 수로 가중한 통과율을 계산하고 복합키 중복·잘못된 수량을 거부합니다. `semi spc`는 한 계열의 앞부분으로 I-MR 기준을 계산하고 이후 관측만 비교합니다. 두 명령 모두 행 수 한도를 넘으면 부분 결과를 전체 집계처럼 반환하지 않고 오류를 냅니다. CLI 최대 행 수는 100,000, MCP는 10,000입니다.
+
+실습의 예상 출력, 실제 데이터의 열 이름 매핑, 오류 대응, MCP 호출 예시는 [반도체 실행 실습](SEMICONDUCTOR-WALKTHROUGH.md)에 있습니다. 결과의 업무 의미와 통계적 한계는 [반도체 안내](SEMICONDUCTOR.md)를 함께 읽으세요. `--output`은 다른 도구와 마찬가지로 새로운 파일에만 씁니다.
