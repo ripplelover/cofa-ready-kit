@@ -1,6 +1,6 @@
 # 검증 결과와 남은 범위
 
-검증일: 2026-10-30, 키트 버전 1.1.0. 개발·실행 환경은 Windows, Python 3.10.7이다. 이 기록은 준비 키트의 확인 결과이며 대회 과제의 검증 결과가 아니다.
+검증일: 2026-10-30, 키트 버전 1.2.0. 개발·실행 환경은 Windows, Python 3.10.7이다. 이 기록은 준비 키트의 확인 결과이며 대회 과제의 검증 결과가 아니다.
 
 추가로 [공개 복제본을 이용한 합성 과제 리허설](REHEARSAL-2026-10-30.md)을 실행했다. 해당 과제 자체 10개와 독립 검증 18개가 통과했고, 로컬 Codex가 설치 스킬 5개를 발견했다. Sol 지정 요청은 응답했으나 파일 읽기는 정책에 차단됐다. 아래 키트 테스트 수와 합산하거나 Cofa·Sol의 전체 과제 수행 성공으로 해석하지 않는다.
 
@@ -8,7 +8,7 @@
 
 ```text
 python -m unittest discover -s tests -v
-49 tests: 48 passed, 1 skipped
+61 tests: 60 passed, 1 skipped
 ```
 
 건너뛴 1개는 Windows 계정에서 심볼릭 링크를 만들 권한이 없어 실행하지 못한 경로 이탈 검사다. 다른 경로 이탈·존재하는 외부 파일 접근 거부·파일 보존 검사는 실행했다. 이 환경에서 symlink 방어가 실행 검증됐다고 표시하지 않는다.
@@ -24,6 +24,10 @@ python -m unittest discover -s tests -v
 - 가중 검사 통과율 손계산, 복합키 중복·결측·비정상 수량·0 분모, 전체 집계의 행 수 한도 처리.
 - I-MR 손계산, 감시 데이터에 영향받지 않는 기준 한계, 기준→감시 경계의 이동범위, 상수열·시간순서·혼합 계열 처리.
 - 반도체 MCP 두 도구의 실제 CLI 연결과 잘못된 옵션 거부.
+- CSV 관계 검사: 복합키·앞자리 0 보존, 전체 키 유일성, 2×3 결합의 예상 6행, 미매칭·0행, 잘못된 CSV·행 제한, 종료코드·출력 보존.
+- 새 MCP `csv_join_audit`의 실제 CLI 호출, 관계 위반 진단, 인수·경로 제한. 기존 49개에서 관련 검사 12개를 추가했다.
+
+새 [조인 실습](DATA-JOIN.md)은 구현을 읽기 전 문서 명령부터 별도 실행했다. CLI 확인 항목 18개, 실제 stdio MCP 확인 항목 11개, 추가 경계 사례 12개가 통과했다. 이는 위 61개 테스트와 별도의 확인 기록이며 테스트 수에 합산하지 않는다. 합성 원본 해시·출력 보존과 예상 결합 행 수 4/5/5/6이 일치했다. 실제 Cofa MCP 탭 연결이나 업무상 키의 정확성을 검증한 것은 아니다.
 
 다섯 스킬은 OpenAI 제공 `skill-creator/scripts/quick_validate.py`에서 모두 `Skill is valid!` 결과를 얻었다. 검증용 PyYAML은 개발용 제외 폴더에만 설치했으며 배포 키트 실행 의존성이 아니다.
 
@@ -48,4 +52,4 @@ python -m unittest discover -s tests -v
 
 `run`은 보안 샌드박스가 아니며, 사용자가 지정한 명령을 실행한다. timeout은 직접 실행한 자식 프로세스까지만 종료한다. 대회에서 허용된 로컬 일회성 검증에 사용한다. 서버·백그라운드 자손 프로세스 실행용으로 사용하지 않는다.
 
-MCP는 직접 작성한 작은 stdio 구현으로, 이 키트의 읽기 전용 도구 네 개만 제공한다. 전체 MCP 기능을 구현한 범용 SDK가 아니며 실제 클라이언트 호환성은 별도 확인이 필요하다. 기반 규격: [MCP 수명주기](https://modelcontextprotocol.io/specification/2025-11-25/basic/lifecycle), [도구](https://modelcontextprotocol.io/specification/2025-11-25/server/tools), [stdio 전송](https://modelcontextprotocol.io/specification/2025-11-25/basic/transports).
+MCP는 직접 작성한 작은 stdio 구현으로, 이 키트의 읽기 전용 도구 다섯 개만 제공한다. 전체 MCP 기능을 구현한 범용 SDK가 아니며 실제 클라이언트 호환성은 별도 확인이 필요하다. 기반 규격: [MCP 수명주기](https://modelcontextprotocol.io/specification/2025-11-25/basic/lifecycle), [도구](https://modelcontextprotocol.io/specification/2025-11-25/server/tools), [stdio 전송](https://modelcontextprotocol.io/specification/2025-11-25/basic/transports).

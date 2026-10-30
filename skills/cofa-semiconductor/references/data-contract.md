@@ -52,6 +52,20 @@ Samsung의 EDS 설명은 웨이퍼 수준 검사·수리·최종 검사와 양�
 
 pandas가 이미 있다면 `merge(validate="many_to_one", indicator=True)` 같은 관계 검사와 매칭 표시를 사용할 수 있다. `many_to_many`는 유일성 검증을 하지 않으며, pandas는 양쪽의 null 키를 서로 매칭할 수 있어 일반 SQL과 다르다. 도구 사용 여부와 관계없이 같은 조건을 확인한다. [pandas.merge 공식 문서](https://pandas.pydata.org/docs/reference/api/pandas.merge.html)
 
+### 로컬 도구로 조인 전제 확인
+
+실제 결합이 필요하고 양쪽 키와 기대 관계가 확인된 경우에만 키트의 `data join-check`를 사용한다. 아래는 과제 루트에 `.cofa-kit`이 있을 때의 예시다. `LEFT`, `RIGHT`와 열 이름·관계는 실제 확인한 값으로 바꾼다.
+
+```bash
+python3 .cofa-kit/scripts/cofa.py data join-check LEFT RIGHT --left-key lot_id,wafer_id --right-key lot_id,wafer_id --relationship many_to_one
+```
+
+이 도구는 행 수 제한 안에서 두 CSV 전체의 키 개수, 미매칭, 예상 조인 행 수와 명시한 관계를 검사한다. 실제 조인이나 수치 합계 보존 검사는 하지 않는다. 키·관계가 불명확하면 추측해 인수를 채우지 말고 확인한다.
+
+종료코드는 `0` 관계 검사 통과, `1` 관계 위반, `2` 잘못된 입력이다. 통과해도 업무상 맞는 결합이나 분모 보존이 증명된 것은 아니다. 실제 결합 후 개체 수와 분자·분모 합계를 별도로 계산하고 작은 기대값과 대조한다. 오류를 없애려고 자동 중복 제거를 하지 않는다.
+
+MCP 목록에 `csv_join_audit`가 실제로 있을 때만 같은 검사를 도구로 요청할 수 있다. 인수는 `left_path`, `right_path`, 배열인 `left_key`·`right_key`, `relationship`, `encoding`, `max_rows`다. 연결이 없으면 CLI를 사용하고, 어느 쪽에서도 미확정 키나 관계를 임의 선택하지 않는다.
+
 ## 실무자에게 확인할 질문
 
 - 이번 결정은 어느 제품·공정·검사 단계·기간·모집단에 대한 것인가?

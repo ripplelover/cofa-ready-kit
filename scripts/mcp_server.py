@@ -42,6 +42,17 @@ TOOLS = [
          'encoding': {'type': 'string', 'enum': ['utf-8-sig', 'cp949'], 'default': 'utf-8-sig'},
          'max_rows': {'type': 'integer', 'minimum': 1, 'maximum': 10000, 'default': 10000}},
          'required': ['path', 'value_col', 'time_col', 'baseline_count'], 'additionalProperties': False},
+     'annotations': {'readOnlyHint': True, 'destructiveHint': False, 'openWorldHint': False}},
+    {'name': 'csv_join_audit',
+     'description': 'Audit two local CSV key relationships and predict join row multiplication without executing a join. Counts only; does not prove business semantics or aggregate conservation.',
+     'inputSchema': {'type': 'object', 'properties': {
+         'left_path': {'type': 'string'}, 'right_path': {'type': 'string'},
+         'left_key': {'type': 'array', 'items': {'type': 'string'}, 'minItems': 1, 'maxItems': 16},
+         'right_key': {'type': 'array', 'items': {'type': 'string'}, 'minItems': 1, 'maxItems': 16},
+         'relationship': {'type': 'string', 'enum': ['one_to_one', 'many_to_one', 'one_to_many', 'many_to_many']},
+         'encoding': {'type': 'string', 'enum': ['utf-8-sig', 'cp949'], 'default': 'utf-8-sig'},
+         'max_rows': {'type': 'integer', 'minimum': 1, 'maximum': 10000, 'default': 10000}},
+         'required': ['left_path', 'right_path', 'left_key', 'right_key', 'relationship'], 'additionalProperties': False},
      'annotations': {'readOnlyHint': True, 'destructiveHint': False, 'openWorldHint': False}}
 ]
 
@@ -91,6 +102,23 @@ def call_tool(root, name, args):
         if encoding not in ('utf-8-sig', 'cp949') or type(rows) is not int or not 1 <= rows <= 10000:
             raise ValueError('invalid encoding or max_rows')
         command = ['profile', str(path), '--format', 'csv', '--encoding', encoding, '--max-rows', str(rows)]
+    elif name == 'csv_join_audit':
+        if set(args) - {'left_path', 'right_path', 'left_key', 'right_key', 'relationship', 'encoding', 'max_rows'}:
+            raise ValueError('unknown argument')
+        left = local_path(root, args.get('left_path'))
+        right = local_path(root, args.get('right_path'))
+        left_key, right_key = column_list(args.get('left_key')), column_list(args.get('right_key'))
+        if len(args['left_key']) != len(args['right_key']):
+            raise ValueError('left_key and right_key must have the same number of columns')
+        relationship = args.get('relationship')
+        if not isinstance(relationship, str) or relationship not in ('one_to_one', 'many_to_one', 'one_to_many', 'many_to_many'):
+            raise ValueError('invalid or missing relationship')
+        encoding = args.get('encoding', 'utf-8-sig')
+        rows = args.get('max_rows', 10000)
+        if encoding not in ('utf-8-sig', 'cp949') or type(rows) is not int or not 1 <= rows <= 10000:
+            raise ValueError('invalid encoding or max_rows')
+        command = ['data', 'join-check', str(left), str(right), '--left-key', left_key,
+                   '--right-key', right_key, '--relationship', relationship, '--encoding', encoding, '--max-rows', str(rows)]
     elif name in ('semiconductor_yield', 'spc_monitor'):
         extra = {'group_by', 'key', 'tested_col', 'passed_col'} if name == 'semiconductor_yield' else {'value_col', 'time_col', 'baseline_count', 'series_cols'}
         if set(args) - ({'path', 'encoding', 'max_rows'} | extra):
@@ -164,7 +192,7 @@ class Server:
             self.ready = False
             result = {'protocolVersion': version if version in VERSIONS else VERSIONS[0],
                       'capabilities': {'tools': {'listChanged': False}},
-                      'serverInfo': {'name': 'cofa-local', 'version': '1.1.0'}}
+                      'serverInfo': {'name': 'cofa-local', 'version': '1.2.0'}}
         elif method == 'ping':
             result = {}
         elif not self.ready:

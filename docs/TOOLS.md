@@ -95,3 +95,13 @@ python scripts/cofa.py semi spc examples/semiconductor/measurements.csv --value-
 `semi yield`는 검사 수로 가중한 통과율을 계산하고 복합키 중복·잘못된 수량을 거부합니다. `semi spc`는 한 계열의 앞부분으로 I-MR 기준을 계산하고 이후 관측만 비교합니다. 두 명령 모두 행 수 한도를 넘으면 부분 결과를 전체 집계처럼 반환하지 않고 오류를 냅니다. CLI 최대 행 수는 100,000, MCP는 10,000입니다.
 
 실습의 예상 출력, 실제 데이터의 열 이름 매핑, 오류 대응, MCP 호출 예시는 [반도체 실행 실습](SEMICONDUCTOR-WALKTHROUGH.md)에 있습니다. 결과의 업무 의미와 통계적 한계는 [반도체 안내](SEMICONDUCTOR.md)를 함께 읽으세요. `--output`은 다른 도구와 마찬가지로 새로운 파일에만 씁니다.
+
+## 두 CSV의 키 관계 검사
+
+버전 1.2.0부터 실제 결합 전에 키 중복·미매칭·예상 행 증가를 확인할 수 있습니다.
+
+```bash
+python scripts/cofa.py data join-check examples/joins/inspections.csv examples/joins/tool_map.csv --left-key lot_id,wafer_id --right-key lot_id,wafer_id --relationship many_to_one
+```
+
+`--relationship`은 필수이며 `one_to_one`, `many_to_one`, `one_to_many`, `many_to_many` 중 실제 기대 관계를 지정합니다. 선택 옵션은 `--encoding utf-8-sig|cp949`, `--max-rows`(각 파일 최대 100,000), `--output 새파일.json`입니다. 정상 관계는 0, 관계 위반은 진단 JSON과 종료코드 1, 입력 오류는 2입니다. 실제 조인·원본 수정·자동 중복 제거·숫자 합계 보존 검사는 수행하지 않습니다. MCP의 같은 도구는 `csv_join_audit`이며 각 파일 최대 10,000행입니다. [정상·실패 예제와 인수 설명](DATA-JOIN.md)

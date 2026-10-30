@@ -9,6 +9,7 @@ from . import __version__
 from .core import (KitError, append_log, check_workspace, doctor, init_workspace,
                    profile_file, report_workspace, run_check)
 from .semiconductor import column_list, spc_summary, yield_summary
+from .relations import RELATIONSHIPS, join_audit
 
 
 def parser() -> argparse.ArgumentParser:
@@ -35,6 +36,17 @@ def parser() -> argparse.ArgumentParser:
     run.add_argument("--timeout", type=float, default=30)
     run.add_argument("--max-output-bytes", type=int, default=65_536)
     run.add_argument("arguments", nargs=argparse.REMAINDER, help="-- COMMAND ARG ... (no shell inserted)")
+    data = commands.add_parser("data", help="Inspect local data relationships without joining source files")
+    data_commands = data.add_subparsers(dest="data_command", required=True)
+    join = data_commands.add_parser("join-check", help="Check key cardinality and predict join row counts")
+    join.add_argument("left")
+    join.add_argument("right")
+    join.add_argument("--left-key", required=True, help="Comma-separated left key columns in matching order")
+    join.add_argument("--right-key", required=True, help="Comma-separated right key columns in matching order")
+    join.add_argument("--relationship", choices=RELATIONSHIPS, required=True)
+    join.add_argument("--encoding", choices=["utf-8-sig", "cp949"], default="utf-8-sig")
+    join.add_argument("--max-rows", type=int, default=100_000, help="Per-file limit; reject larger inputs instead of sampling")
+    join.add_argument("--output", help="Write diagnostics to a NEW file without overwriting")
     semi = commands.add_parser("semi", help="Count-based inspection pass rates and exploratory frozen-baseline I-MR")
     analyses = semi.add_subparsers(dest="analysis", required=True)
     for name in ("yield", "spc"):
@@ -91,6 +103,11 @@ def main(argv: list[str] | None = None) -> int:
                                      baseline_count=args.baseline_count,
                                      series_cols=column_list(args.series_cols) if args.series_cols is not None else None,
                                      encoding=args.encoding, max_rows=args.max_rows)
+        elif args.command == "data":
+            result = join_audit(args.left, args.right, left_key=column_list(args.left_key),
+                                right_key=column_list(args.right_key), relationship=args.relationship,
+                                encoding=args.encoding, max_rows=args.max_rows)
+            exit_code = 0 if result["ok"] else 1
         else:
             result = report_workspace(args.workspace, args.manifest)
         output = result if isinstance(result, str) else json.dumps(result, ensure_ascii=False, indent=2, allow_nan=False)
