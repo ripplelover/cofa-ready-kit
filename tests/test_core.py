@@ -2,14 +2,17 @@ import contextlib
 import io
 import json
 import os
+import shutil
+import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 from cofa_kit.__main__ import main
 from cofa_kit.core import (KitError, append_log, check_workspace, contained_path,
-                           init_workspace, profile_file, report_workspace, run_check)
+                           init_workspace, profile_file, read_log, report_workspace, run_check)
 
 
 class ToolkitTests(unittest.TestCase):
@@ -148,6 +151,45 @@ class ToolkitTests(unittest.TestCase):
         with self.assertRaises(KitError):
             append_log(self.root, "test", "not run", ["missing.txt"])
 
+    def test_append_preserves_valid_log_without_final_newline(self):
+        init_workspace(self.root)
+        original = {"timestamp": "2026-10-30T00:00:00+00:00", "kind": "decision", "summary": "kept", "evidence": []}
+        path = self.write("decision-log.jsonl", json.dumps(original))
+        before = path.read_bytes()
+        append_log(self.root, "test", "new observed result")
+        self.assertTrue(path.read_bytes().startswith(before + b"\n"))
+        records = read_log(self.root)
+        self.assertEqual(records[0], original)
+        self.assertEqual(records[1]["summary"], "new observed result")
+        self.assertIn("new observed result", report_workspace(self.root))
+
+    def test_append_rejects_unrelated_or_malformed_log_without_changing_bytes(self):
+        init_workspace(self.root)
+        for content in ('{"event":"order-created"}\n', '{"timestamp":', '{"timestamp":"x","kind":[],"summary":"x","evidence":[]}\n'):
+            with self.subTest(content=content):
+                path = self.write("decision-log.jsonl", content)
+                before = path.read_bytes()
+                with self.assertRaisesRegex(KitError, "Existing decision log is incompatible"):
+                    append_log(self.root, "decision", "must not append")
+                self.assertEqual(path.read_bytes(), before)
+
+    def test_run_preflights_log_before_command_or_evidence_creation(self):
+        init_workspace(self.root)
+        path = self.write("decision-log.jsonl", '{"event":"order-created"}\n')
+        before = path.read_bytes()
+        with self.assertRaisesRegex(KitError, "Existing decision log is incompatible"):
+            run_check(self.root, "R1", [sys.executable, "-c", "from pathlib import Path; Path('executed.txt').write_text('ran')"])
+        self.assertFalse((self.root / "executed.txt").exists())
+        self.assertFalse((self.root / "evidence").exists())
+        self.assertEqual(path.read_bytes(), before)
+
+    def test_append_size_limit_does_not_create_unreadable_oversized_log(self):
+        init_workspace(self.root)
+        path = self.root / "decision-log.jsonl"
+        with patch("cofa_kit.core.MAX_LOG_BYTES", 32), self.assertRaises(KitError):
+            append_log(self.root, "decision", "would exceed the small test limit")
+        self.assertEqual(path.read_bytes(), b"")
+
     def test_manifest_shape_and_duplicate_id_rejected(self):
         self.write("requirements.json", '{"required_files": "x", "criteria": []}')
         with self.assertRaises(KitError):
@@ -211,6 +253,56 @@ class ToolkitTests(unittest.TestCase):
         self.assertTrue(result["ok"])
         with self.assertRaises(KitError):
             run_check(self.root, "missing", [sys.executable, "--version"])
+
+    def node(self):
+        executable = shutil.which("node")
+        if not executable:
+            self.skipTest("Node.js is unavailable; optional real Node TAP check skipped")
+        version = subprocess.run([executable, "--version"], capture_output=True, text=True, timeout=5)
+        if version.returncode or int(version.stdout.strip().lstrip("v").split(".")[0]) < 18:
+            self.skipTest("Node.js 18+ is required for this optional real Node TAP check")
+        return executable
+
+    def test_real_node_empty_suite_is_not_test_success(self):
+        executable = self.node()
+        init_workspace(self.root)
+        result = run_check(self.root, "R1", [executable, "--test"], timeout=15)
+        self.assertEqual(result["exit_code"], 0)
+        self.assertEqual(result["test_summary"]["recognized"], "node_tap")
+        self.assertTrue(result["test_summary"]["no_tests"])
+        self.assertFalse(result["ok"])
+
+    def test_real_node_all_skipped_or_todo_is_not_test_success(self):
+        executable = self.node()
+        init_workspace(self.root)
+        for declaration in ("test.skip('pending', () => {});", "test.todo('pending');"):
+            with self.subTest(declaration=declaration):
+                self.write("only.test.cjs", "const test = require('node:test');\n" + declaration)
+                result = run_check(self.root, "R1", [executable, "--test", "only.test.cjs"], timeout=15)
+                self.assertEqual(result["exit_code"], 0)
+                self.assertEqual(result["test_summary"]["recognized"], "node_tap")
+                self.assertTrue(result["test_summary"]["all_pending"])
+                self.assertFalse(result["ok"])
+                self.assertIn("command_ok=False", read_log(self.root)[-1]["summary"])
+                self.assertIn("all_pending=True", read_log(self.root)[-1]["summary"])
+
+    def test_real_node_pass_and_fail_remain_distinct(self):
+        executable = self.node()
+        init_workspace(self.root)
+        for expected, assertion in ((True, "assert.equal(2 + 2, 4)"), (False, "assert.equal(2 + 2, 5)")):
+            with self.subTest(expected=expected):
+                self.write("only.test.cjs", "const test = require('node:test'); const assert = require('node:assert/strict');\n"
+                           + "test('arithmetic contract', () => { " + assertion + "; });\n")
+                result = run_check(self.root, "R1", [executable, "--test", "only.test.cjs"], timeout=15)
+                self.assertEqual(result["test_summary"]["recognized"], "node_tap")
+                self.assertEqual(result["ok"], expected)
+                self.assertEqual(result["test_summary"]["reported_failure"], not expected)
+
+    def test_partial_tap_text_is_not_mistaken_for_complete_node_summary(self):
+        init_workspace(self.root)
+        result = run_check(self.root, "R1", [sys.executable, "-c", "print('# tests 0\\n# pass 0')"])
+        self.assertIsNone(result["test_summary"]["recognized"])
+        self.assertTrue(result["ok"])
 
 
 if __name__ == "__main__":

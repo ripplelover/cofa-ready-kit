@@ -50,6 +50,8 @@ python scripts/cofa.py log --workspace work/practice --kind decision --summary "
 
 실제로 확인하지 않은 답변·테스트를 기록하지 마세요. 직접 입력한 `test` 기록은 사용자의 진술이며 도구가 실행했다는 뜻이 아닙니다. 실제 명령의 실행 결과를 남기려면 `run`을 사용합니다.
 
+v1.2.1부터 기존 `decision-log.jsonl` 형식을 쓰기 전에 확인합니다. 다른 프로젝트의 동명 로그이거나 손상된 형식이면 원본을 바꾸지 않고 오류로 중단합니다. `run`도 이 검사를 명령 실행 전에 합니다. 정상 JSONL의 마지막 줄바꿈만 빠졌다면 분리해서 이어 씁니다. 충돌하면 기존 파일을 삭제하지 말고 프로젝트 자체 기록을 사용하거나 별도 연습 작업 폴더를 선택하세요. 여러 프로세스가 동시에 같은 로그에 쓰는 용도는 지원하지 않습니다.
+
 ```bash
 python scripts/cofa.py run --workspace work/practice --id R1 --timeout 30 -- python -m unittest discover -s tests -v
 ```
@@ -58,7 +60,9 @@ python scripts/cofa.py run --workspace work/practice --id R1 --timeout 30 -- pyt
 
 `run`의 `--id`는 해당 작업 폴더의 `requirements.json`에 존재하는 ID여야 합니다. 결과는 `evidence/<UTC시각-고유값>/result.json`, `stdout.txt`, `stderr.txt`에 저장되고 `decision-log.jsonl`에 연결됩니다. 출력은 기본적으로 스트림마다 앞부분 65,536바이트까지 보존하며 `--max-output-bytes`로 1,024~1,048,576바이트 사이에서 조정합니다. 원래 출력 바이트를 보존하므로 프로그램에 따라 텍스트 인코딩이 UTF-8이 아닐 수 있습니다.
 
-`run`은 요구사항을 자동으로 `verified`로 바꾸지 않습니다. 종료코드 0만으로 올바른 요구사항을 테스트했다고 판단할 수 없기 때문입니다. 일반적인 unittest/pytest 요약에서 테스트 0개·전부 skip·실패를 발견하면 하위 명령이 0으로 끝나도 성공으로 취급하지 않습니다. 이 감지는 텍스트 형식에 의존합니다. 여러 테스트 실행 결과를 한 명령에 섞거나 출력이 잘렸다면 저장된 결과를 직접 검토하세요. timeout은 실행한 자식 프로세스를 종료하지만 자손 프로세스 전체 종료를 보장하지 않습니다.
+`run`은 요구사항을 자동으로 `verified`로 바꾸지 않습니다. 일반적인 unittest/pytest 요약과 **Node 기본 TAP 요약**에서 테스트 0개·전부 skip·실패를 발견하면 하위 명령이 0으로 끝나도 성공으로 취급하지 않습니다. Node의 전부 TODO 또는 skip+TODO만 있는 경우도 성공이 아닙니다. Jest·Vitest·사용자 정의 리포터까지 감지한다는 뜻은 아닙니다. 인식되지 않은 출력은 `recognized: null`이므로 실제 테스트 개수·결과를 직접 읽으세요. 여러 실행을 합치거나 출력이 잘린 경우도 직접 검토가 필요합니다. `ok: true`는 실행 관찰상 성공이며 요구사항 충족을 보장하지 않습니다.
+
+검증 뒤 코드·입력·설정을 수정하거나 여러 작업을 통합했다면 영향받는 검사를 다시 실행하세요. 이 키트가 모든 소스의 해시를 추적해 오래된 증거를 자동 무효화하지는 않습니다. timeout은 직접 실행한 자식 프로세스를 종료하지만 자손 프로세스 전체 종료를 보장하지 않습니다.
 
 ## 제출 전 구조 검사
 

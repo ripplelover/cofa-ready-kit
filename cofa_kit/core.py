@@ -290,12 +290,13 @@ def append_log(workspace: str | Path, kind: str, summary: str, evidence: list[st
         raise KitError("Evidence must be an array")
     for file in evidence:
         contained_path(root, file, must_exist=True)
-    path = contained_path(root, "decision-log.jsonl")
-    if path.exists() and path.stat().st_size > MAX_LOG_BYTES:
-        raise KitError("Decision log exceeds 20 MiB")
+    path, separator, size = _log_append_state(root)
     record = {"timestamp": utc_now(), "kind": kind, "summary": summary.strip(), "evidence": evidence}
-    with path.open("a", encoding="utf-8", newline="\n") as stream:
-        stream.write(json.dumps(record, ensure_ascii=False) + "\n")
+    payload = (separator + json.dumps(record, ensure_ascii=False) + "\n").encode("utf-8")
+    if size + len(payload) > MAX_LOG_BYTES:
+        raise KitError("Appending this record would exceed the decision log size limit; existing log is unchanged")
+    with path.open("ab") as stream:
+        stream.write(payload)
     return record
 
 
@@ -321,12 +322,31 @@ def read_log(root: Path) -> list[dict[str, Any]]:
     return result
 
 
+def _log_append_state(root: Path) -> tuple[Path, str, int]:
+    """Validate an existing log without changing it; preserve valid final lines."""
+    path = contained_path(root, "decision-log.jsonl")
+    if not path.exists():
+        return path, "", 0
+    try:
+        read_log(root)
+    except (KitError, ValueError, UnicodeError) as error:
+        raise KitError(f"Existing decision log is incompatible; preserve it and use another workspace: {error}") from error
+    size = path.stat().st_size
+    separator = ""
+    if size:
+        with path.open("rb") as stream:
+            stream.seek(-1, 2)
+            if stream.read(1) != b"\n":
+                separator = "\n"
+    return path, separator, size
+
+
 def _cell(value: Any) -> str:
     return str(value).replace("\\", "\\\\").replace("|", "\\|").replace("<", "&lt;").replace(">", "&gt;").replace("\r", " ").replace("\n", "<br>")
 
 
 def _test_summary(text: str) -> dict[str, Any]:
-    """Recognize common unittest/pytest summaries, without claiming test quality."""
+    """Recognize unittest/pytest and Node's default TAP footer, not test quality."""
     ran = re.search(r"Ran\s+(\d+)\s+tests?\b", text)
     if ran:
         count = int(ran.group(1))
@@ -346,6 +366,22 @@ def _test_summary(text: str) -> dict[str, Any]:
             return {"recognized": "pytest", "counts": counts, "no_tests": False,
                     "all_skipped": executed == 0 and counts.get("skipped", 0) > 0,
                     "reported_failure": any(counts.get(key, 0) > 0 for key in ("failed", "error", "errors"))}
+    # Match the complete default Node test-runner footer, not isolated '# tests'
+    # text in arbitrary logs. Jest, Vitest and custom reporters are not inferred.
+    tap = re.search(
+        r"^# tests (?P<tests>\d+)\r?\n(?:# suites \d+\r?\n)?"
+        r"# pass (?P<passed>\d+)\r?\n# fail (?P<failed>\d+)\r?\n"
+        r"# cancelled (?P<cancelled>\d+)\r?\n# skipped (?P<skipped>\d+)\r?\n"
+        r"# todo (?P<todo>\d+)\r?\n# duration_ms \d+(?:\.\d+)?[ \t]*$",
+        text, re.MULTILINE)
+    if tap:
+        counts = {key: int(value) for key, value in tap.groupdict().items()}
+        executed = counts["passed"] + counts["failed"] + counts["cancelled"]
+        return {"recognized": "node_tap", "counts": counts,
+                "no_tests": counts["tests"] == 0,
+                "all_skipped": counts["tests"] > 0 and counts["skipped"] == counts["tests"],
+                "all_pending": counts["tests"] > 0 and executed == 0 and counts["skipped"] + counts["todo"] == counts["tests"],
+                "reported_failure": counts["failed"] > 0 or counts["cancelled"] > 0}
     return {"recognized": None, "no_tests": False, "all_skipped": False,
             "note": "No supported test summary recognized. Exit code alone does not establish test coverage."}
 
@@ -369,6 +405,9 @@ def run_check(workspace: str | Path, criterion_id: str, command: list[str], *, t
         raise KitError("Timeout must be greater than zero and at most 1800 seconds")
     if isinstance(max_output_bytes, bool) or not isinstance(max_output_bytes, int) or not 1024 <= max_output_bytes <= 1_048_576:
         raise KitError("max_output_bytes must be between 1024 and 1048576 per stream")
+    # Do not run a command and only then discover that an unrelated project's
+    # log would be modified. This check does not write or repair existing data.
+    _log_append_state(root)
     evidence_root = contained_path(root, "evidence")
     evidence_root.mkdir(exist_ok=True)
     run_name = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") + "-" + uuid.uuid4().hex[:8]
@@ -435,7 +474,7 @@ def run_check(workspace: str | Path, criterion_id: str, command: list[str], *, t
         (destination / f"{name}.txt").write_bytes(bytes(buffers[name]))
         evidence_paths.append(f"evidence/{run_name}/{name}.txt")
     summary = _test_summary("\n".join(bytes(tail_buffers[name]).decode("utf-8", errors="replace") for name in ("stdout", "stderr")))
-    ok = process.returncode == 0 and not timed_out and streams_closed and not summary["no_tests"] and not summary["all_skipped"] and not summary.get("reported_failure", False)
+    ok = process.returncode == 0 and not timed_out and streams_closed and not summary["no_tests"] and not summary["all_skipped"] and not summary.get("all_pending", False) and not summary.get("reported_failure", False)
     record = {"criterion_id": criterion_id, "command": command, "started_at": started,
               "duration_seconds": round(time.monotonic() - clock, 3), "exit_code": process.returncode,
               "timed_out": timed_out, "launched": True, "ok": ok,
@@ -445,7 +484,7 @@ def run_check(workspace: str | Path, criterion_id: str, command: list[str], *, t
               "limits": "Command success is not functional correctness. Requirement statuses are unchanged. Timeout kills only the direct child; do not run servers or launch background processes."}
     (destination / "result.json").write_text(json.dumps(record, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     evidence_paths.insert(0, f"evidence/{run_name}/result.json")
-    append_log(root, "test", f"{criterion_id}: observed command exit={process.returncode}, timeout={timed_out}, no_tests={summary['no_tests']}, all_skipped={summary['all_skipped']}; correctness requires review", evidence_paths)
+    append_log(root, "test", f"{criterion_id}: observed command exit={process.returncode}, command_ok={ok}, timeout={timed_out}, no_tests={summary['no_tests']}, all_skipped={summary['all_skipped']}, all_pending={summary.get('all_pending', False)}; correctness requires review", evidence_paths)
     return record
 
 

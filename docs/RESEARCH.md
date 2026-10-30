@@ -1,81 +1,89 @@
-# 공개 자료 조사와 설계 근거
+# 공식 사례·공개 저장소 조사와 실제 반영
 
-조사 기준일: **2026-10-30**. 공개 웹 페이지, GitHub 저장소 메타데이터·README 및 일부 소스만 확인했다. 아래 저장소의 프로그램은 실행하거나 복사하지 않았다. 최신 코드가 이 조사 이후 바뀔 수 있다.
+조회일 **2026-10-30 KST**. Cofa 공식 사이트의 내부 링크·시연 HTML, 참가자 제공 PDF 3개, GitHub 공개 검색·README·주요 파일을 대조했다. 외부 저장소 코드는 실행하거나 복사하지 않았다. 공개 자료는 수시로 바뀌며 준비 저장소의 주장 자체가 대회 규칙은 아니다.
 
-이 문서는 **관찰한 사실**과 **우리 준비물에 적용할 판단**을 구분한다. 경쟁 저장소보다 높은 점수나 본선 진출을 보장하는 비교 자료는 없다. 실제 시험 규칙은 [RULES.md](RULES.md)의 참가자 제공 PDF와 시험 당일 운영 안내를 기준으로 삼는다.
+## Cofa 공식 사이트를 실제 확인한 결과
 
-## 공식 자료에서 확인되는 평가 방향
-
-| 출처 | 확인한 내용 | 해석 범위 |
+| 확인한 자료 | 관찰 | 우리 준비에 반영 |
 | --- | --- | --- |
-| [SK하이닉스 대회 홈페이지](https://skhynix-hackathon.com/ai-2026) | 개인 참가, AI Native 역량 검증, 실제 문제 해결과 작동하는 결과물을 강조 | 공개 소개다. 참가자의 확정 응시 시각은 개별 안내가 더 구체적이다 |
-| [SK하이닉스 Talent Hub 발표](https://talent.skhynix.com/hub/ko/company/story/237) | 문제 정의, AI 활용, 결과 검증 과정을 종합적으로 살핀다고 설명 | 정확한 채점 가중치나 이번 과제는 공개하지 않는다 |
-| [Cofa 공식 Probe 소개](https://verify.getcofa.com/en/probe) | 결과물과 대화·도구 활용·검증 기록을 함께 분석하고, 후속 설명을 실제 구현과 대조하는 플랫폼이라고 설명 | 플랫폼 일반 기능이다. 이번 시험의 개별 채점표나 모든 화면 기능을 보장하지 않는다 |
+| [Cofa 홈페이지](https://www.getcofa.com/ko) | 기술·의도·인지: 결과 실행·검증, 목표·위임·방향 조정, 구조·원리·한계 설명. 코드와 협업 기록·사후 Q&A를 함께 살핌 | 기능 결과와 검증·선택 이유를 연결. 이번 시험의 공개 배점표라고 해석하지 않음 |
+| [활용 사례](https://www.getcofa.com/ko/usecase) | KRAFTON 내부 채용과 KRAFTON×CJ올리브영 Cofathon에 활용 | 채용·다른 행사 사례와 이번 시험의 개별 조건을 구분 |
+| [개발 작업 화면 시연](https://www.getcofa.com/brochure-v2/workspace-mock.html) | 주문 API의 재시도·중복 주문·결제 불확실성, 기존 API 계약 유지, 코드·테스트·판단 문서 예시 | 기존 프로젝트 수정 분기를 build/triage/verify에 보완 |
+| [평가·면접 브리핑 시연](https://www.getcofa.com/brochure-v2/admin-briefing.html) | 주문 API 외 월별 매출 분석 사례도 있음. 결측 처리의 이유와 전후 비교를 설명하는지 살핌 | 개발 과제 하나나 반도체 주제로 미리 고정하지 않음 |
 
-**설계 판단:** 작동하는 핵심 기능을 빨리 만들고, 요구사항별 확인 근거와 선택 이유를 남기는 준비가 적합하다. 과제 내용이 알려지지 않은 상태에서 반도체 예측 모델, 웹 대시보드, RAG 중 하나를 정답처럼 미리 고정할 근거는 없다.
+사용자 첨부 화면은 위 개발 작업 시연과 같은 `order-service` 예시다. Node.js·TypeScript·PostgreSQL, `DECISIONS.md`가 보이지만 **내일의 기술 스택·필수 파일명·실제 기출이라는 근거는 없다.** HTML도 확인했으며 파일 내용은 문자열, 테스트 버튼은 고정된 결과 문구, 메신저는 고정 안내를 표시한다. 실제 주문 서비스나 테스트를 실행한 증거가 아니다. [공식 시연](https://www.getcofa.com/brochure-v2/workspace-mock.html)
 
-## 실제로 확인한 공개 저장소
+따라서 연습할 것은 `기존 동작 확인 → 오류 재현 → 유지할 계약 확인 → 작은 수정 → 회귀 검사 → 선택 이유 설명`이다. 예시의 구현을 정답으로 가져오거나 과제마다 주문 API·대시보드를 만들지 않는다. [보완한 기존 코드 지침](../skills/cofa-build/references/existing-project.md)
 
-같은 날 추가 재확인에서도 실제 과제·세부 배점·새 필수 MCP는 찾지 못했다. 공개 홈페이지의 10/31–11/1 중 하루라는 일반 일정과 사용자의 10/31 10:00–14:00 개별 안내를 구분한다. 본선 200명이라는 수치는 이번 공식 공개 자료 확인 범위에서 검증하지 못했다. 공식 뉴스룸 직접 요청은 403이어서 그 경로로 최신 공지를 확인했다고 주장하지 않는다.
+공식 공개 자료에서 확인한 것은 **시연용 문제와 활용 사례**다. 내일 실제 문제, 과거 대회의 전체 출제 원문, 세부 채점표를 확보했다고 주장하지 않는다. SK하이닉스 발표의 문제 정의·AI 활용·결과 검증 방향은 준비의 근거로 사용한다. [Talent Hub](https://talent.skhynix.com/hub/ko/company/story/237), [대회 홈페이지](https://skhynix-hackathon.com/ai-2026)
 
-날짜는 조사 시 GitHub API의 `updated_at` 날짜(UTC)다. 최초 작성일이나 최신 코드 커밋일과 같다는 뜻은 아니다. 라이선스 표시는 해당 시점 메타데이터와 문서 확인 범위다.
+## 제품 기능·다른 행사와 내일 규칙을 혼동하지 않기
 
-| 저장소 | 갱신일 | 라이선스 확인 | 관찰한 구성 |
-| --- | --- | --- | --- |
-| [hamjoon2003/sk-hynix-2nd-harness](https://github.com/hamjoon2003/sk-hynix-2nd-harness) | 2026-10-27 | MIT | 요구사항 계약, 결정 기록, 180분 운영표, 환경 점검, CSV 탐색, 판정 규칙, 서술형 준비 |
-| [denny6389/cofa-hackathon-kit](https://github.com/denny6389/cofa-hackathon-kit) | 2026-10-30 | 저장소 전체 라이선스 미지정. 두 Skill에는 각각 MIT 고지 | 요구사항 인터뷰와 완료 전 검증 Skill, 고정 원본 커밋·변형 범위 명시 |
-| [phy0916/cofa-probe-starter](https://github.com/phy0916/cofa-probe-starter) | 2026-10-30 | 조사 시 저장소 라이선스 미표시 | 단계별 프롬프트, pytest 실행 기록, 요구사항 CSV 구조 확인 |
-| [zittenyetten/cofa-probe-workkit](https://github.com/zittenyetten/cofa-probe-workkit) | 2026-10-30 | 새로 작성한 문서·코드는 MIT. 강의 원문·이미지 등은 제외 | 한국어 안내, 증거 확인 Skill, 반도체 용어집, 자료 뷰어 |
-| [hongkevin/cofathon-prep](https://github.com/hongkevin/cofathon-prep) | 2026-09-05 | MIT | 표준 라이브러리 기반 환경 확인·계약 검증, 무검증 상태 구분, 합성 연습 과제 |
+| 공개 사이트의 내용 | 이번 참가자 PDF 기준 |
+| --- | --- |
+| [관리자 보안 시연](https://www.getcofa.com/brochure-v2/admin-security.html)의 파일 업로드·Skills 메뉴 옵션 | 개인 PC 파일 업로드 금지. 일반 제품 옵션이 이번 허용을 의미하지 않음 |
+| [2026-07-30 Cofathon](https://cofathon.getcofa.com/)의 로컬 하네스 업로드 안내 | 다른 행사 조건. 이번에는 허용된 공개 자료를 제공 환경에서 가져오는 방식 |
+| 예시의 제공 모델·실행 시간·메모리·제출명 | 내일 화면의 허용 모델·타이머와 실제 README가 결정 |
+| 일반 제품의 AI 도움·면접관 도구 | 과제는 제공 Codex, 후속 서술형은 AI·복사/붙여넣기 없이 참가자가 직접 답변 |
 
-`hongkevin/cofathon-prep`는 7월 올리브영 관련 대회 준비 프로젝트라고 명시한다. 이번 SK하이닉스 시험의 도구·모델·예상 문제를 확인하는 근거로 사용하지 않는다. `PKJthecreator/probe-kit`도 검색 API에서 확인했으나 README 조회는 404여서 비교 대상에서 제외했다.
+업무 기준은 **실무자 에이전트**, 사용법은 **Cofa Helper**, 반복 장애는 **문제 신고**로 구분한다. 공개 Skill·MCP를 받을 수 있어도 시험 자료 외부 전송·Git Push·Computer Use·외부 모델·개인 API 사용은 허용되지 않는다. PDF의 상세 구분은 [규칙 요약](RULES.md)에 있다.
 
-라이선스가 표시되지 않은 공개 코드는 바로 재배포할 수 있다고 간주하지 않는다. 공개 열람, 아이디어 참고, 코드 재사용 권한은 서로 다르다. 이 키트는 비교 저장소 코드를 복사하지 않고 독립 작성한다.
+## GitHub 최신순 검색 범위
 
-추가 확인 시 `zittenyetten/cofa-probe-workkit`은 웹 도구에서 README가 보였지만 직접 GitHub API가 404를 반환했다. 위 구성은 열람 당시의 관찰이며 현재 다운로드 가능성이 확인됐다는 뜻은 아니다. 다른 준비 저장소에 도구가 많다는 사실만으로 이번 시험에서 필요하거나 가산점을 받는다고 판단하지 않는다.
+GitHub 공개 API의 `sort=updated&order=desc`로 검색했다. 인증 없이 조회했고 rate limit 거절은 없었다. 아래 건수는 조회 당시 순간값이며 모두 이번 대회 관련이라는 뜻은 아니다.
 
-## 추가 Skill·MCP를 고른 이유
+| 검색어 | 당시 결과 수 |
+| --- | --- |
+| [cofa](https://github.com/search?q=cofa&type=repositories&s=updated&o=desc) | 696 |
+| ["Cofa Probe"](https://github.com/search?q=%22Cofa+Probe%22&type=repositories&s=updated&o=desc) | 8 |
+| ["sk hynix" hackathon](https://github.com/search?q=%22sk+hynix%22+hackathon&type=repositories&s=updated&o=desc) | 7 |
+| [hynix hackathon](https://github.com/search?q=hynix+hackathon&type=repositories&s=updated&o=desc) | 9 |
+| [하이닉스 해커톤](https://github.com/search?q=%ED%95%98%EC%9D%B4%EB%8B%89%EC%8A%A4+%ED%95%B4%EC%BB%A4%ED%86%A4&type=repositories&s=updated&o=desc) | 3 |
+| [cofa skills](https://github.com/search?q=cofa+skills&type=repositories&s=updated&o=desc) | 8 |
+| [cofa 이름·10월 20일 이후 생성](https://github.com/search?q=cofa+in%3Aname+created%3A%3E2026-10-20&type=repositories&s=updated&o=desc) | 36, 그중 최신 30개 목록 확인 |
 
-기존 다섯 스킬은 문제 정의·구현·검증·반도체 판단·제출 전 설명 연습을 다룬다. 제출 문서 전용이나 웹 검토 전용 스킬을 더 만들면 현재 역할과 겹친다. 이번 보완은 **기존 반도체 스킬의 조인 안내와 실행 가능한 로컬 검사 하나**로 좁혔다.
+검색 결과를 전부 정밀 감사한 것은 아니다. 관련성 있는 **기존 3곳·신규 8곳, 총 11곳**의 README와 주요 파일을 비교했다. 아래 시각은 GitHub `updated_at` **UTC**이며 최신 커밋 시각·품질 순위와 다르다. 시험 문제와 참가자의 답을 찾은 것이 아니라 공개 준비 도구를 비교한 것이다.
 
-| 후보 | 이번 선택 | 이유 |
+| 저장소·갱신 시각(UTC) | 실제 확인한 파일과 장점 | 라이선스 확인·적용 판단 |
 | --- | --- | --- |
-| 두 CSV의 키 관계 검사 | CLI와 기존 MCP에 `csv_join_audit` 추가 | 한 파일 요약만으로는 중복 키 결합·미매칭·예상 행 증가를 확인할 수 없음 |
-| 별도 제출/웹 검토 스킬 | 추가하지 않음 | 기존 `cofa-verify`, 문서·수동 Browser 안내가 다룸 |
-| 외부 검색·DB·문서 MCP 묶음 | 기본 구성에 추가하지 않음 | 실제 과제의 필요가 미확정이며 연결·인증·시험 자료 전송 여부를 따로 판단해야 함 |
-| SQLite·XLSX 전용 기능 | 해당 파일이 실제로 주어지면 선택 | 지금은 입력 형식과 요구 기능이 알려지지 않음 |
-| 브라우저 자동 조작 도구 | 시험 준비 구성에서 사용하지 않음 | PDF의 전 단계 Computer Use 금지와 수동 Browser 절차를 따름 |
+| [zittenyetten/cofa-probe-kit](https://github.com/zittenyetten/cofa-probe-kit), 10-30 14:44:20 | [task-evidence-check](https://github.com/zittenyetten/cofa-probe-kit/blob/main/skills/task-evidence-check/SKILL.md): 답변·AI 제안·결정 구분, 불완전한 답 재확인, 짧은 상태 보고 | 자체 자료 MIT, 강의 원자료 등 별도 권리. 질문 후속 확인 원칙 참고 |
+| [B0neh3ad/cofa-toolkit](https://github.com/B0neh3ad/cofa-toolkit), 10-30 14:39:36 | [parallel-delivery](https://github.com/B0neh3ad/cofa-toolkit/blob/main/skills/parallel-delivery/SKILL.md): 수정 파일 담당 분리, 통합 담당, 통합 후 검사 | MIT. 실제 위임 기능이 있을 때만 해당 운영 원칙 참고 |
+| [JINwonLEE/cofa-codex-harness](https://github.com/JINwonLEE/cofa-codex-harness), 10-30 14:36:43 | [README](https://github.com/JINwonLEE/cofa-codex-harness/blob/main/README.md), [hx-interview](https://github.com/JINwonLEE/cofa-codex-harness/blob/main/skills/hx-interview/SKILL.md): 7개 스킬, 질문 점검과 답 기록 구분 | MIT. 기존 5개 역할과 중복. 추가 AGENTS 관리 블록은 도입하지 않음 |
+| [denny6389/cofa-hackathon-kit](https://github.com/denny6389/cofa-hackathon-kit), 10-30 14:29:15 | [README](https://github.com/denny6389/cofa-hackathon-kit/blob/main/README.md): 직접 스킬 읽기, 실제 요구→구현→독립 기대값 연결 | 전체 라이선스 미표시, 일부 스킬 MIT. 단계마다 승인 반복하는 흐름은 채택하지 않음 |
+| [bbambbubba/cofa-probe](https://github.com/bbambbubba/cofa-probe), 10-30 14:12:40 | [harness.py](https://github.com/bbambbubba/cofa-probe/blob/main/harness.py): 구현·입력 fingerprint, 출력 SHA256, 명령·경로·최소 검사 수 대조 | MIT. 오래된 검증 증거의 재사용 방지 원칙 참고. 새 기록 규격 전체는 도입하지 않음 |
+| [ApexIllumination/cofa-work-kit-devdominics](https://github.com/ApexIllumination/cofa-work-kit-devdominics), 10-30 14:07:50 | [eval-cases.json](https://github.com/ApexIllumination/cofa-work-kit-devdominics/blob/main/templates/eval-cases.json), [pipeline-map.json](https://github.com/ApexIllumination/cofa-work-kit-devdominics/blob/main/templates/pipeline-map.json): 정상·예외 기대값, 진입점·흐름·의존성 연결 | 루트 LICENSE 조회 404/API 미표시. 기존 기록에 실제 기대값·구현 위치를 연결하는 원칙 참고 |
+| [allsleep7610/hynix-hackathon-workflow](https://github.com/allsleep7610/hynix-hackathon-workflow), 10-30 11:32:08 | [README](https://github.com/allsleep7610/hynix-hackathon-workflow/blob/main/README.md): 18개 스킬, 단일 기록, 독립 평가·자체 점검 구분 | [NOTICE](https://github.com/allsleep7610/hynix-hackathon-workflow/blob/main/NOTICE.md)는 재사용 라이선스 미부여 명시. 구현 해설과 본인 이해 확인을 구분하는 원칙만 참고 |
+| [arcturus0637-rgb/cofa-prelim-kit](https://github.com/arcturus0637-rgb/cofa-prelim-kit), 10-30 06:31:04 | [checks.py](https://github.com/arcturus0637-rgb/cofa-prelim-kit/blob/main/kitlib/checks.py), [session.py](https://github.com/arcturus0637-rgb/cofa-prelim-kit/blob/main/kitlib/session.py): 실행 전후와 현재 source fingerprint 대조 | 자체 코드 MIT, upstream은 원본 조건. 소스 변경 뒤 재검증 원칙 참고 |
+| [phy0916/cofa-probe-starter](https://github.com/phy0916/cofa-probe-starter), 10-30 04:38:45 | [run_tests.py](https://github.com/phy0916/cofa-probe-starter/blob/main/scripts/run_tests.py): pytest 종료코드·버전·출력 기록 | 루트 LICENSE 조회 404/API 미표시. 현재 로컬 실행기와 중복 |
+| [ColdTbrew/cofa-skills](https://github.com/ColdTbrew/cofa-skills), 10-27 13:34:00 | [honest-eval](https://github.com/ColdTbrew/cofa-skills/blob/main/skills/honest-eval/SKILL.md): 운영 상황에 맞는 평가, 기준선·누수·임계값 선정 자료 구분 | MIT. 예측·분류 과제일 때만 기존 반도체/검증 지침 적용 |
+| [hamjoon2003/sk-hynix-2nd-harness](https://github.com/hamjoon2003/sk-hynix-2nd-harness), 10-27 07:38:40 | [README](https://github.com/hamjoon2003/sk-hynix-2nd-harness/blob/main/README.md), [preflight.py](https://github.com/hamjoon2003/sk-hynix-2nd-harness/blob/main/scripts/preflight.py): 환경·시간대·경계·요구사항별 검사 | MIT. 환경 PASS와 과제 검증 성공을 구분하며 키트 폴더를 과제 루트로 혼동하지 않음 |
 
-조인 검사는 원본을 읽고 키 관계와 예상 행 수만 계산한다. 실제 결합이나 수량 보존 검증을 대신하지 않으며, 데이터가 여러 파일이라는 이유만으로 항상 실행하는 검사도 아니다. [실행 예와 한계](DATA-JOIN.md)
+공개 열람 가능성과 재배포 허가는 다르다. 위 구현을 복사·설치·실행한 비교가 아니며 성능·안전성·점수 우열을 입증하지 않는다. 이전에 본 `zittenyetten/cofa-probe-workkit` 대신 이번에는 실제 확인된 `cofa-probe-kit`을 비교했다. 예전 `hongkevin/cofathon-prep`는 다른 행사의 준비물로, 내일 도구·출제의 증거로 사용하지 않는다.
 
-PDF는 토큰 사용량의 간접 평가 가능성을 언급하지만 구체적인 감점 공식은 주지 않는다. 불필요한 스킬·문서·에이전트 사용을 줄이고 중요한 실행 검증을 남기는 방향으로 운영한다. 실제 문제를 받은 뒤의 순서는 [당일 실행 안내](EXAM-PLAYBOOK.md)에 정리했다.
+## 이번 재점검으로 바꾼 것
 
-## 관찰에서 도출한 실용적인 개선점
+| 발견한 부족함 | 반영한 수정 | 확인 범위 |
+| --- | --- | --- |
+| 설치·문서·스킬 호출을 먼저 배워야 하는 복잡성 | README의 제공 Codex 시작 요청 한 번, 필요한 스킬 파일 직접 읽기, 설치·MCP 선택형 | 경로·문서 간 흐름 검토. 실제 Cofa 파일 접근은 사전 체험 필요 |
+| 기존 코드 오류 수정 분기가 얕음 | 변경 전 재현·API 계약·회귀 테스트·최소 수정·정상 동작 보존을 기존 build/triage/verify에 추가 | 공개 데모와 대조한 지침 보완. 내일 문제를 가정하지 않음 |
+| 검증 후 파일 변경·통합을 놓칠 수 있음 | 영향받는 변경 후 관련 검사 재실행, 통합 결과에서 재검증 명시 | 절차로 확인. 자동 fingerprint 대조 기능은 구현하지 않음 |
+| 기존 로그 형식·마지막 개행에 따라 기록 손상 가능 | v1.2.1에서 쓰기 전 검사·보존, run의 명령 실행 전 검사 | 재현 후 회귀 테스트로 검증 |
+| Node의 테스트 0개를 명령 성공으로 볼 수 있음 | Node 기본 TAP의 0개·skip·TODO·실패 구분 | 실제 Node 실행 검사. Jest/Vitest·모든 출력 형식 지원은 아님 |
 
-1. **환경 점검과 과제 검증을 분리한다.** Python 실행 성공이나 문서 존재는 업무 기능이 맞다는 증거가 아니다. 어떤 요구사항을 어떤 입력으로 확인했는지 별도로 기록한다.
-2. **검사를 안 했다는 사실을 드러낸다.** 테스트 0개, 모두 건너뜀, 예제 테스트만 성공한 상태를 과제 완료로 표시하지 않는다.
-3. **기록의 연결을 검사한다.** 요구사항 ID, 구현 위치, 검증 방법, 실제 결과, 남은 한계를 연결한다. 문서 칸이 채워졌다는 사실만으로 기능 정확성을 인정하지 않는다.
-4. **도구 설치 시간을 줄인다.** 핵심 보조 기능은 표준 라이브러리로 실행하고, 추가 패키지는 실제 과제가 필요로 할 때 선택한다.
-5. **스킬을 선택해서 읽는다.** 처음부터 모든 문서와 외부 자료를 컨텍스트에 넣지 않는다. 현재 단계에서 필요한 문서만 읽고, 판단이 바뀐 이유와 검증 결과를 짧게 남긴다.
-6. **새 도구의 가치에 비용을 포함한다.** MCP 연결·인증·재시도 시간까지 포함해 판단한다. 직접 터미널에서 할 수 있는 로컬 작업을 위해 필수 외부 서비스를 만들지 않는다.
+업무 답변이 불완전하면 **실제로 답한 범위만 확정하고, 미응답은 표시한 채 결과를 바꾸는 경계 사례를 재질문**한다. 기다리는 동안 독립된 확정 작업을 진행한다. 그 내용을 triage에 반영했다. 검사와 수정의 상세 기록은 [검증 결과](VALIDATION.md)에 있다.
 
-코드 관찰 예: `hamjoon2003/sk-hynix-2nd-harness`의 점검 스크립트는 전체 PASS 수가 0일 때 무검증 종료 코드를 내지만, Python 같은 환경 항목이 PASS를 만든다. 과제 테스트가 건너뛰어져도 날짜 관련 예제 테스트가 실행되면 테스트 항목이 PASS가 될 수 있다. 문구에는 템플릿임을 표시한다. **코드 열람에서 확인한 구분 한계이며 실행 재현 결과는 아니다.** [관찰한 스크립트](https://github.com/hamjoon2003/sk-hynix-2nd-harness/blob/main/scripts/preflight.py), [테스트 템플릿](https://github.com/hamjoon2003/sk-hynix-2nd-harness/blob/main/tools/test_template.py)
+## Skill·MCP를 더 추가해야 하나
 
-`phy0916/cofa-probe-starter`의 CSV 검사는 구조 확인이라는 목적을 명확히 밝힌다. 이것은 유용하지만 실제 증거 파일 존재나 검증 결과까지 확인하는 기능은 별개다. [관찰한 CSV 검사](https://github.com/phy0916/cofa-probe-starter/blob/main/scripts/check_traceability.py)
+현재 다섯 스킬은 문제 파악·구현·검증·반도체 판단·제출 전 이해 연습을 다룬다. 새 문제에 맞는 핵심 보완은 기존 코드 수정 지침이었다. 새 스킬 이름이나 MCP 서버를 더 늘릴 필요는 확인되지 않았다.
 
-## 최신 공식 문서에서 취할 패턴
+| 실제 필요 | 쓰는 도구 | 선택 이유 |
+| --- | --- | --- |
+| 파일·코드 조사, 기존 테스트·타입/빌드 검사 | 제공 Codex와 기존 프로젝트 터미널 명령 | 새 filesystem·shell MCP와 역할 중복을 만들지 않음 |
+| CSV·검사 수율·I-MR·키 관계 확인 | 현재 CLI, 필요할 때만 로컬 MCP 5개 | 추가 계정 없이 같은 작업 환경에서 읽기 전용 검사 |
+| 실제 화면 점검 | 사람이 Cofa Browser 사용 | PDF의 Computer Use 금지와 수동 확인 안내 적용 |
+| SQL·XLSX·예측 모델 | 실제 파일·목표·제공 의존성이 확인된 뒤 선택 | 문제가 나오기 전 DB·모델·RAG·대시보드를 고정하지 않음 |
+| 공개 기술 문서 참고 | 제공 환경에서 시험 내용을 빼고 일반 질의 | 원격 MCP·외부 AI로 과제 파일을 전송하지 않음 |
 
-**짧고 선택 가능한 Skill.** OpenAI 문서는 Skill 이름·설명을 먼저 제공하고, 요청과 맞거나 명시적으로 호출되면 전체 지침을 읽는 방식을 설명한다. Skill은 MCP 없이도 지침·자료만으로 작동할 수 있다. 여기서 가져올 것은 필요한 단계의 지침을 선택하는 구조다. 시험 환경의 자동 탐색 경로나 등록 방식을 확인해 주는 문서는 아니다. [OpenAI Skills 개념](https://developers.openai.com/plugins/concepts/skills)
+스킬은 필요한 시점에 지침을 읽는 방식으로 사용한다. [OpenAI 스킬 문서](https://learn.chatgpt.com/docs/build-skills)와 현재 로컬 탐색 확인을 참고했지만, Cofa 제공 버전의 자동 탐색은 별도 검증 대상이다. 기본 경로는 파일 직접 읽기를 사용해 탐색·등록 문제에 덜 의존하도록 했다.
 
-**관찰 → 수정 → 실행 검증.** OpenAI의 2026-05-11 Cookbook은 현재 결과물을 검토하고, 좁은 범위로 고치고, 실제 실행의 실패를 다음 수정에 반영하는 흐름을 설명한다. 이 키트는 그 작업 패턴을 참고한다. 예제의 개인 API 키, CLI 설치, 모델 선택 명령을 시험에 옮기는 것은 별개의 문제이며 대회 규칙에 맞지 않는다. [Build iterative repair loops with Codex](https://developers.openai.com/cookbook/examples/codex/build_iterative_repair_loops_with_codex)
-
-이 자료들이 대규모 에이전트 구성이나 MCP 개수가 점수를 높인다고 입증하지는 않는다. 도구를 추가한 이유를 설명하고 실제로 시간을 절약했는지 확인하는 것이 이 준비물의 원칙이다.
-
-## 아직 모르는 것
-
-- 실제 문제의 주제, 입력 데이터, 요구 산출물과 필수 파일명.
-- 세부 채점 가중치, 본선 진출 점수, 특정 도구의 가산점 유무.
-- 응시 환경의 정확한 Python·Node·Codex 버전과 인터넷 접근 허용 대상.
-- 이 키트의 Skill 자동 탐색과 MCP 연결이 실제 Probe 세션에서 동작하는지.
-
-따라서 공개 자료 조사는 **준비 방법을 선택하는 근거**로 사용한다. 실제 과제는 해당 README·과제 안내·실무자 에이전트의 확인 내용으로 정의하고, 운영 문제는 Cofa Helper 또는 문제 신고로 해결한다.
+내일의 실제 주제·요구 파일명·채점 가중치·Cofa MCP 스키마·설정 유지 여부·본선 진출 점수는 확인되지 않았다. 도구 개수나 타 저장소와의 비교로 진출을 보장하지 않는다. 준비가 끝났는지는 **실제 요구를 설명하고, 실행 결과를 확인하고, 한계를 본인이 말할 수 있는지**로 점검한다.

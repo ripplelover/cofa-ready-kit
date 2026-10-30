@@ -192,7 +192,7 @@ class Server:
             self.ready = False
             result = {'protocolVersion': version if version in VERSIONS else VERSIONS[0],
                       'capabilities': {'tools': {'listChanged': False}},
-                      'serverInfo': {'name': 'cofa-local', 'version': '1.2.0'}}
+                      'serverInfo': {'name': 'cofa-local', 'version': '1.2.1'}}
         elif method == 'ping':
             result = {}
         elif not self.ready:
