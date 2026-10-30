@@ -304,6 +304,67 @@ class ToolkitTests(unittest.TestCase):
         self.assertIsNone(result["test_summary"]["recognized"])
         self.assertTrue(result["ok"])
 
+    def test_truncated_output_preserves_exact_tail_used_for_summary(self):
+        init_workspace(self.root)
+        result = run_check(self.root, "R1", [sys.executable, "-c", "print('x' * 25000); print('Ran 1 test in 0.001s\\nOK')"], max_output_bytes=1024)
+        self.assertTrue(result["ok"])
+        directory = self.root / result["evidence_directory"]
+        self.assertNotIn(b"Ran 1 test", (directory / "stdout.txt").read_bytes())
+        tail = result["tail_capture"]["streams"]["stdout"]
+        tail_bytes = (self.root / tail["path"]).read_bytes()
+        self.assertIn(b"Ran 1 test in 0.001s", tail_bytes)
+        self.assertEqual(len(tail_bytes), tail["captured_bytes"])
+        self.assertLessEqual(len(tail_bytes), 16384)
+        self.assertEqual(tail["observed_end_byte_exclusive"] - tail["observed_start_byte"], len(tail_bytes))
+        self.assertEqual(result["test_summary"]["evidence_path"], tail["path"])
+        self.assertLessEqual(sum(p.stat().st_size for p in directory.glob("*.tail.txt")), 32768)
+
+    def test_multiple_summaries_cannot_hide_failure_or_mix_skip_counts(self):
+        init_workspace(self.root)
+        cases = [
+            "1 failed, 1 passed in 0.01s\n1 passed in 0.01s",
+            "Ran 1 test in 0.001s\nOK\nRan 1 test in 0.001s\nOK (skipped=1)",
+            "Ran 1 test in 0.001s\nOK\n1 passed in 0.01s",
+        ]
+        for text in cases:
+            with self.subTest(text=text):
+                result = run_check(self.root, "R1", [sys.executable, "-c", f"print({text!r})"])
+                self.assertEqual(result["exit_code"], 0)
+                self.assertFalse(result["ok"])
+                self.assertTrue(result["test_summary"]["ambiguous"])
+                self.assertEqual(len(result["test_summary"]["summaries"]), 2)
+                self.assertFalse(result["test_summary"]["all_skipped"])
+        self.assertIn("ambiguous=True", read_log(self.root)[-1]["summary"])
+
+    def test_stdout_and_stderr_summaries_are_reviewed_separately(self):
+        init_workspace(self.root)
+        code = "import sys; print('1 passed in 0.01s'); print('1 failed in 0.01s', file=sys.stderr)"
+        result = run_check(self.root, "R1", [sys.executable, "-c", code])
+        self.assertFalse(result["ok"])
+        summary = result["test_summary"]
+        self.assertTrue(summary["ambiguous"])
+        self.assertTrue(summary["reported_failure"])
+        self.assertEqual({item["stream"] for item in summary["summaries"]}, {"stdout", "stderr"})
+
+    def test_isolated_summary_words_and_indented_traceback_text_are_not_footers(self):
+        init_workspace(self.root)
+        text = "Example: Ran 1 test\n  Ran 1 test in 0.001s\n  OK\nTask said 1 failed in 0.01s\n# tests 0"
+        result = run_check(self.root, "R1", [sys.executable, "-c", f"print({text!r})"])
+        self.assertIsNone(result["test_summary"]["recognized"])
+        self.assertTrue(result["ok"])
+
+    def test_evidence_write_failure_cannot_record_success(self):
+        init_workspace(self.root)
+        original = Path.write_bytes
+        def fail_tail(path, data):
+            if path.name == "stdout.tail.txt":
+                raise OSError("simulated evidence write failure")
+            return original(path, data)
+        with patch.object(Path, "write_bytes", fail_tail), self.assertRaisesRegex(OSError, "simulated evidence"):
+            run_check(self.root, "R1", [sys.executable, "-c", "print('1 passed in 0.01s')"])
+        self.assertEqual(read_log(self.root), [])
+        self.assertEqual(list((self.root / "evidence").rglob("result.json")), [])
+
 
 if __name__ == "__main__":
     unittest.main()

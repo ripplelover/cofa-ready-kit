@@ -4,7 +4,7 @@
 
 **스킬을 이름으로 호출하는 방법이 궁금할 때 [여러 스킬 사용법](SKILLS-BEGINNER.md)을 읽는다.** 터미널과 Codex 입력란 구분, 선택형 설치, 두 스킬을 한 요청에 넣는 방법을 설명한다.
 
-**내일은 [README의 시작 요청](../README.md#2-ai-입력란에-이것만-보내세요) 하나로 시작한다.** [당일 사용법](EXAM-PLAYBOOK.md)은 화면 위치와 이후 확인 순서를 설명한다. 아래 설치·CLI 명령은 오늘 연습하거나 특정 기능이 필요할 때 참고하는 선택형 상세 설명이다. 기본 진행에 설치나 MCP 연결은 필수가 아니다.
+**시험 당일에는 [README의 시작 요청](../README.md#2-ai-입력란에-이것만-보내세요) 하나로 시작한다.** [당일 사용법](EXAM-PLAYBOOK.md)은 화면 위치와 이후 확인 순서를 설명한다. 아래 설치·CLI 명령은 오늘 연습하거나 특정 기능이 필요할 때 참고하는 선택형 상세 설명이다. 기본 진행에 설치나 MCP 연결은 필수가 아니다.
 
 ## 1. 먼저 읽는 순서와 입력 위치
 
@@ -13,7 +13,7 @@ CLI와 작업 기록 도구를 오늘 직접 연습하려면 이 문서의 1–5
 | 화면 | 입력할 내용 | 예 |
 | --- | --- | --- |
 | 오늘 개인 PC의 PowerShell | Windows에서 실행할 셸 명령 | `python scripts/cofa.py doctor` |
-| 내일 Cofa 안의 터미널 | 제공 작업 환경의 셸 명령. 아래 실전 예제는 Bash 기준 | `python3 .cofa-kit/scripts/cofa.py doctor` |
+| 시험 당일 Cofa 안의 터미널 | 제공 작업 환경의 셸 명령. 아래 실전 예제는 Bash 기준 | `python3 .cofa-kit/scripts/cofa.py doctor` |
 | 터미널에서 연 Codex 입력란 | AI에게 할 자연어 요청, `/status`, `/model`, `$cofa-triage` | “README를 읽고 필수조건을 정리해 줘.” |
 | Cofa 파일 편집기 | Python 코드, JSON, 문서 내용 | `requirements.json` 수정 |
 | Cofa Browser | 사람이 포트·경로를 맞추고 화면 직접 조작 | 버튼 클릭, 잘못된 입력 확인 |
@@ -36,7 +36,7 @@ python scripts/cofa.py doctor
 
 Python 3.10 이상이고 출력의 `python_supported`가 `true`인지 확인한다. `versions`에 없는 실행 프로그램은 `null`로 나올 수 있다. 오늘 PC에 Codex CLI가 없더라도 키트의 데이터 검사와 기록 기능은 연습할 수 있다. `doctor`는 설치된 실행 파일의 버전만 확인한다. Cofa 접속, 도구 허용, 모델 응답, MCP 연결을 검증하는 명령은 아니다.
 
-**2026-10-30 로컬 리허설에서 실제로 발견한 차이:** 이 Windows PC의 Git Bash에서는 `python3 --version`이 실패했고 `python --version`은 3.10.7을 반환했다. `python3.exe`라는 파일이 검색돼도 실행 가능한 Python이라는 뜻은 아니다. 내일 제공 환경에서도 먼저 버전 명령을 실행하고, 성공한 이름을 이후 명령에 일관되게 사용한다. 이 결과는 Cofa의 Python 이름이나 운영체제를 확인한 것이 아니다.
+**2026-10-30 로컬 리허설에서 실제로 발견한 차이:** 이 Windows PC의 Git Bash에서는 `python3 --version`이 실패했고 `python --version`은 3.10.7을 반환했다. `python3.exe`라는 파일이 검색돼도 실행 가능한 Python이라는 뜻은 아니다. 시험 당일 제공 환경에서도 먼저 버전 명령을 실행하고, 성공한 이름을 이후 명령에 일관되게 사용한다. 이 결과는 Cofa의 Python 이름이나 운영체제를 확인한 것이 아니다.
 
 처음 받는 경우에만, 원하는 상위 폴더에서 다음을 실행한다.
 
@@ -71,7 +71,7 @@ python scripts/cofa.py profile examples/defects.csv
 python scripts/cofa.py profile examples/requests.json --format json
 ```
 
-첫 명령은 **키트 코드의 테스트**다. 내일 만드는 과제 결과물을 검사한 것으로 기록하면 안 된다. 운영체제의 심볼릭 링크 권한 등으로 일부 검사가 `skipped`로 표시되면 그 이유를 읽는다. 데이터 요약에서는 행 수·표본 범위·결측·중복을 보고, 열 이름만으로 데이터 의미를 단정하지 않는다.
+첫 명령은 **키트 코드의 테스트**다. 시험 당일 만드는 과제 결과물을 검사한 것으로 기록하면 안 된다. 운영체제의 심볼릭 링크 권한 등으로 일부 검사가 `skipped`로 표시되면 그 이유를 읽는다. 데이터 요약에서는 행 수·표본 범위·결측·중복을 보고, 열 이름만으로 데이터 의미를 단정하지 않는다.
 
 ## 3. 15분 정도로 핵심 사용 흐름 익히기
 
@@ -206,7 +206,7 @@ python scripts/cofa.py report --workspace work/manual-practice --output work/man
 
 **`check` 통과는 구조 확인이다.** 파일과 근거 경로가 있고 완료로 선언됐다는 뜻이지, 코드가 모든 입력에서 정확하다는 보증은 아니다. `report` 역시 기록을 정리할 뿐 그 내용을 독립적으로 증명하지 않는다.
 
-## 4. 내일 Cofa 작업 공간에 가져오기
+## 4. 시험 당일 Cofa 작업 공간에 가져오기
 
 이 절의 Bash 명령은 **Cofa가 제공한 터미널**에서 실행한다. 오늘 PC에서 실행해 둔 것과 별개다. 필요한 외부 자료는 제공된 AI를 통해 가져오며, 개인 파일 업로드나 외부 브라우저 직접 접근에 의존하지 않는다. 아래 명령을 제공 Codex에 실행해 달라고 요청해도 된다.
 

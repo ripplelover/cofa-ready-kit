@@ -345,44 +345,60 @@ def _cell(value: Any) -> str:
     return str(value).replace("\\", "\\\\").replace("|", "\\|").replace("<", "&lt;").replace(">", "&gt;").replace("\r", " ").replace("\n", "<br>")
 
 
-def _test_summary(text: str) -> dict[str, Any]:
-    """Recognize unittest/pytest and Node's default TAP footer, not test quality."""
-    ran = re.search(r"Ran\s+(\d+)\s+tests?\b", text)
-    if ran:
-        count = int(ran.group(1))
-        skipped_match = re.search(r"\bskipped=(\d+)\b", text)
+def _test_summaries(text: str) -> list[dict[str, Any]]:
+    """Find complete supported footers, without combining unrelated runs."""
+    summaries = []
+    unittest_footer = (
+        r"^Ran (?P<count>\d+) tests? in \d+(?:\.\d+)?s\r?\n(?:[ \t]*\r?\n)*"
+        r"(?P<outcome>OK|FAILED)(?: \((?P<details>[^\r\n]*)\))?[ \t]*$")
+    for match in re.finditer(unittest_footer, text, re.MULTILINE):
+        count = int(match.group("count"))
+        skipped_match = re.search(r"\bskipped=(\d+)\b", match.group("details") or "")
         skipped = int(skipped_match.group(1)) if skipped_match else 0
-        return {"recognized": "unittest", "collected": count, "skipped": skipped,
-                "no_tests": count == 0, "all_skipped": count > 0 and skipped == count,
-                "reported_failure": bool(re.search(r"^FAILED\b", text, re.MULTILINE))}
-    if re.search(r"\bno tests ran\b|\bcollected 0 items\b", text):
-        return {"recognized": "pytest", "no_tests": True, "all_skipped": False}
-    # Use pytest's final duration line, not counts embedded in individual test logs.
-    summary_lines = [line for line in text.splitlines() if re.search(r"\bin\s+\d+(?:\.\d+)?s\b", line)]
-    for line in reversed(summary_lines):
-        counts = {key: int(number) for number, key in re.findall(r"(\d+)\s+(passed|failed|skipped|error|errors|xfailed|xpassed)\b", line)}
-        if counts:
-            executed = sum(counts.get(key, 0) for key in ("passed", "failed", "error", "errors", "xfailed", "xpassed"))
-            return {"recognized": "pytest", "counts": counts, "no_tests": False,
-                    "all_skipped": executed == 0 and counts.get("skipped", 0) > 0,
-                    "reported_failure": any(counts.get(key, 0) > 0 for key in ("failed", "error", "errors"))}
+        summaries.append({"recognized": "unittest", "collected": count, "skipped": skipped,
+                          "no_tests": count == 0, "all_skipped": count > 0 and skipped == count,
+                          "reported_failure": match.group("outcome") == "FAILED"})
+    outcome = r"(?:passed|failed|skipped|errors?|xfailed|xpassed|deselected|warnings?|rerun)"
+    pytest_footer = (
+        r"^(?:=+[ \t]*)?(?P<counts>\d+ " + outcome + r"(?:,[ \t]*\d+ " + outcome + r")*)"
+        r" in \d+(?:\.\d+)?s(?: \([^\r\n]*\))?[ \t]*(?:=+)?$")
+    for match in re.finditer(pytest_footer, text, re.MULTILINE):
+        counts = {key: int(number) for number, key in re.findall(r"(\d+) (\w+)", match.group("counts"))}
+        executed = sum(counts.get(key, 0) for key in ("passed", "failed", "error", "errors", "xfailed", "xpassed"))
+        summaries.append({"recognized": "pytest", "counts": counts,
+                          "no_tests": executed == 0 and counts.get("skipped", 0) == 0,
+                          "all_skipped": executed == 0 and counts.get("skipped", 0) > 0,
+                          "reported_failure": any(counts.get(key, 0) > 0 for key in ("failed", "error", "errors"))})
+    for _ in re.finditer(r"^(?:=+[ \t]*)?no tests ran in \d+(?:\.\d+)?s[ \t]*(?:=+)?$", text, re.MULTILINE):
+        summaries.append({"recognized": "pytest", "no_tests": True, "all_skipped": False})
     # Match the complete default Node test-runner footer, not isolated '# tests'
     # text in arbitrary logs. Jest, Vitest and custom reporters are not inferred.
-    tap = re.search(
+    tap_footer = (
         r"^# tests (?P<tests>\d+)\r?\n(?:# suites \d+\r?\n)?"
         r"# pass (?P<passed>\d+)\r?\n# fail (?P<failed>\d+)\r?\n"
         r"# cancelled (?P<cancelled>\d+)\r?\n# skipped (?P<skipped>\d+)\r?\n"
-        r"# todo (?P<todo>\d+)\r?\n# duration_ms \d+(?:\.\d+)?[ \t]*$",
-        text, re.MULTILINE)
-    if tap:
+        r"# todo (?P<todo>\d+)\r?\n# duration_ms \d+(?:\.\d+)?[ \t]*$")
+    for tap in re.finditer(tap_footer, text, re.MULTILINE):
         counts = {key: int(value) for key, value in tap.groupdict().items()}
         executed = counts["passed"] + counts["failed"] + counts["cancelled"]
-        return {"recognized": "node_tap", "counts": counts,
-                "no_tests": counts["tests"] == 0,
-                "all_skipped": counts["tests"] > 0 and counts["skipped"] == counts["tests"],
-                "all_pending": counts["tests"] > 0 and executed == 0 and counts["skipped"] + counts["todo"] == counts["tests"],
-                "reported_failure": counts["failed"] > 0 or counts["cancelled"] > 0}
-    return {"recognized": None, "no_tests": False, "all_skipped": False,
+        summaries.append({"recognized": "node_tap", "counts": counts,
+                          "no_tests": counts["tests"] == 0,
+                          "all_skipped": counts["tests"] > 0 and counts["skipped"] == counts["tests"],
+                          "all_pending": counts["tests"] > 0 and executed == 0 and counts["skipped"] + counts["todo"] == counts["tests"],
+                          "reported_failure": counts["failed"] > 0 or counts["cancelled"] > 0})
+    return summaries
+
+
+def _combine_test_summaries(summaries: list[dict[str, Any]]) -> dict[str, Any]:
+    if len(summaries) == 1:
+        return {**summaries[0], "ambiguous": False}
+    if len(summaries) > 1:
+        return {"recognized": "ambiguous", "ambiguous": True, "summaries": summaries,
+                "no_tests": any(item["no_tests"] for item in summaries),
+                "all_skipped": all(item["all_skipped"] for item in summaries),
+                "reported_failure": any(item.get("reported_failure", False) for item in summaries),
+                "note": "Multiple supported summaries were observed; review each recorded output instead of inferring a single successful test run."}
+    return {"recognized": None, "ambiguous": False, "no_tests": False, "all_skipped": False,
             "note": "No supported test summary recognized. Exit code alone does not establish test coverage."}
 
 
@@ -416,6 +432,8 @@ def run_check(workspace: str | Path, criterion_id: str, command: list[str], *, t
     buffers = {"stdout": bytearray(), "stderr": bytearray()}
     totals = {"stdout": 0, "stderr": 0}
     tail_buffers = {"stdout": bytearray(), "stderr": bytearray()}
+    tail_limit = 16_384
+    capture_lock = threading.Lock()
     stop = threading.Event()
 
     def consume(stream, name):
@@ -424,15 +442,16 @@ def run_check(workspace: str | Path, criterion_id: str, command: list[str], *, t
                 chunk = stream.read(8192)
                 if not chunk:
                     break
-                if stop.is_set():
-                    break
-                totals[name] += len(chunk)
-                remaining = max_output_bytes - len(buffers[name])
-                if remaining > 0:
-                    buffers[name].extend(chunk[:remaining])
-                tail_buffers[name].extend(chunk)
-                if len(tail_buffers[name]) > 16_384:
-                    del tail_buffers[name][:-16_384]
+                with capture_lock:
+                    if stop.is_set():
+                        break
+                    totals[name] += len(chunk)
+                    remaining = max_output_bytes - len(buffers[name])
+                    if remaining > 0:
+                        buffers[name].extend(chunk[:remaining])
+                    tail_buffers[name].extend(chunk)
+                    if len(tail_buffers[name]) > tail_limit:
+                        del tail_buffers[name][:-tail_limit]
         finally:
             stream.close()
 
@@ -465,26 +484,46 @@ def run_check(workspace: str | Path, criterion_id: str, command: list[str], *, t
         thread.join(timeout=1)
     streams_closed = all(not thread.is_alive() for thread in threads)
     stop.set()
+    with capture_lock:
+        heads = {name: bytes(value) for name, value in buffers.items()}
+        tails = {name: bytes(value) for name, value in tail_buffers.items()}
+        observed = dict(totals)
     # A descendant retaining a pipe does not block return. Only finite, one-shot
     # commands should be used; the tool deliberately never kills platform processes.
     evidence_paths = []
+    tail_capture = {"per_stream_limit_bytes": tail_limit, "total_limit_bytes": 2 * tail_limit,
+                    "complete": streams_closed, "streams": {}}
+    summaries = []
     for name in ("stdout", "stderr"):
         # Preserve bytes exactly, including non-UTF-8 programs, and keep the on-disk
         # byte bound identical to the memory bound.
-        (destination / f"{name}.txt").write_bytes(bytes(buffers[name]))
+        (destination / f"{name}.txt").write_bytes(heads[name])
         evidence_paths.append(f"evidence/{run_name}/{name}.txt")
-    summary = _test_summary("\n".join(bytes(tail_buffers[name]).decode("utf-8", errors="replace") for name in ("stdout", "stderr")))
-    ok = process.returncode == 0 and not timed_out and streams_closed and not summary["no_tests"] and not summary["all_skipped"] and not summary.get("all_pending", False) and not summary.get("reported_failure", False)
+        tail_path = f"evidence/{run_name}/{name}.tail.txt"
+        (destination / f"{name}.tail.txt").write_bytes(tails[name])
+        evidence_paths.append(tail_path)
+        start = observed[name] - len(tails[name])
+        tail_capture["streams"][name] = {"path": tail_path, "captured_bytes": len(tails[name]),
+                                         "observed_start_byte": start, "observed_end_byte_exclusive": observed[name],
+                                         "first_line_may_be_partial": start > 0}
+        # A tail may begin mid-line. Discard that uncertain first line for parsing,
+        # while preserving the exact bytes for review.
+        parse_bytes = tails[name].split(b"\n", 1)[1] if start > 0 and b"\n" in tails[name] else (b"" if start > 0 else tails[name])
+        for item in _test_summaries(parse_bytes.decode("utf-8", errors="replace").replace("\r\n", "\n")):
+            summaries.append({**item, "stream": name, "evidence_path": tail_path})
+    summary = _combine_test_summaries(summaries)
+    ok = process.returncode == 0 and not timed_out and streams_closed and not summary["ambiguous"] and not summary["no_tests"] and not summary["all_skipped"] and not summary.get("all_pending", False) and not summary.get("reported_failure", False)
     record = {"criterion_id": criterion_id, "command": command, "started_at": started,
               "duration_seconds": round(time.monotonic() - clock, 3), "exit_code": process.returncode,
               "timed_out": timed_out, "launched": True, "ok": ok,
-              "streams_closed": streams_closed, "captured_bytes": {name: len(buffers[name]) for name in buffers},
-              "observed_bytes": totals, "output_truncated": {name: totals[name] > len(buffers[name]) for name in buffers},
+              "streams_closed": streams_closed, "captured_bytes": {name: len(heads[name]) for name in heads},
+              "observed_bytes": observed, "output_truncated": {name: observed[name] > len(heads[name]) for name in heads},
+              "tail_capture": tail_capture,
               "test_summary": summary, "evidence_directory": f"evidence/{run_name}",
               "limits": "Command success is not functional correctness. Requirement statuses are unchanged. Timeout kills only the direct child; do not run servers or launch background processes."}
     (destination / "result.json").write_text(json.dumps(record, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     evidence_paths.insert(0, f"evidence/{run_name}/result.json")
-    append_log(root, "test", f"{criterion_id}: observed command exit={process.returncode}, command_ok={ok}, timeout={timed_out}, no_tests={summary['no_tests']}, all_skipped={summary['all_skipped']}, all_pending={summary.get('all_pending', False)}; correctness requires review", evidence_paths)
+    append_log(root, "test", f"{criterion_id}: observed command exit={process.returncode}, command_ok={ok}, timeout={timed_out}, ambiguous={summary['ambiguous']}, no_tests={summary['no_tests']}, all_skipped={summary['all_skipped']}, all_pending={summary.get('all_pending', False)}; correctness requires review", evidence_paths)
     return record
 
 
