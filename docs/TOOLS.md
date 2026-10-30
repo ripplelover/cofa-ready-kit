@@ -1,5 +1,7 @@
 # CLI 사용 예제
 
+[시험 첫 화면](../README.md) · [전체 문서 지도](INDEX.md)
+
 아래는 저장소 루트에서 사용하는 예제입니다. Cofa 작업 공간에서는 `python scripts/cofa.py`를 `python3 .cofa-kit/scripts/cofa.py`로 바꾸세요. 모든 결과는 로컬 파일·터미널에만 남습니다. 도구 이름이나 출력은 공식 채점 기준이 아닙니다.
 
 ## 요구사항을 먼저 적기
@@ -70,6 +72,8 @@ v1.2.2는 실제 요약 판정에 사용한 끝부분도 `stdout.tail.txt`, `std
 
 ## 제출 전 구조 검사
 
+아래 구조 검사는 파일 존재·사용자 선언을 확인합니다. 실행한 코드와 현재 코드의 내용 비교가 필요하면 다음 절의 선택형 추적을 함께 사용합니다.
+
 ```bash
 python scripts/cofa.py check --workspace work/practice
 python scripts/cofa.py report --workspace work/practice --output work/practice/evidence-summary.md
@@ -90,6 +94,49 @@ python scripts/cofa.py report --workspace work/practice --output work/practice/e
 `run`의 종료코드는 0이면 실행 관찰상 성공, 1이면 실행 실패·시간 초과·인식된 무효 테스트 결과, 2이면 입력·파일 처리 오류입니다. 0도 요구사항 충족을 보증하지 않습니다. `report --output` 역시 기존 파일을 덮어쓰지 않으므로 새 경로를 지정하세요.
 
 정확한 전체 옵션은 `python scripts/cofa.py --help`와 하위 명령의 `--help`를 사용합니다.
+
+## 검증한 파일이 바뀌었는지 확인하기
+
+v1.3.0의 선택 기능입니다. **테스트 통과 후 코드를 수정하고 예전 성공 로그를 그대로 쓰는 실수**를 줄입니다. 이미 키트의 `requirements.json`과 `run`을 사용하는 경우에 적용하며, 이 기능 때문에 기존 프로젝트에 새 기록 형식을 강제하지 않습니다.
+
+Codex에는 다음처럼 요청할 수 있습니다.
+
+```text
+이미 키트 run으로 검사를 기록하고 있다면 관련 코드·테스트·입력 중
+기존 파일을 --watch로 지정해 실행 전후 상태도 기록해 줘.
+이후 파일이 바뀌면 예전 통과 기록을 재사용하지 말고 필요한 검사를 다시 실행해 줘.
+파일이 같다는 판정과 테스트 성공·요구사항 충족은 따로 확인해 줘.
+```
+
+아래는 **실제 프로젝트가 해당 파일과 일회성 `npm test`를 사용하고, 실제 조건 ID `R1`을 이미 기록한 경우**의 형식 예입니다. 파일·ID·명령은 실제 과제에 맞춥니다. `--watch`는 명령 구분자 `--` **앞**에서 반복합니다.
+
+```bash
+python3 .cofa-kit/scripts/cofa.py run --workspace . --id R1 --watch src/orders.ts --watch tests/orders.test.ts -- npm test
+```
+
+출력의 `evidence_directory`에서 실제 실행 폴더를 확인합니다. 아래의 `실제실행폴더`를 그 값에 맞게 바꿉니다.
+
+```bash
+python3 .cofa-kit/scripts/cofa.py evidence check --workspace . --result evidence/실제실행폴더/result.json
+```
+
+MCP로 같은 비교를 할 때의 도구 인수 예입니다. **설정 JSON이 아니라 이미 연결된 도구 호출의 인수**입니다.
+
+```json
+{"result_path": "evidence/실제실행폴더/result.json"}
+```
+
+제공 Codex에 “`evidence_freshness`로 이 실제 실행 기록의 추적 파일을 비교해 줘”라고 요청하면 됩니다. MCP는 읽기만 하며 이 도구로 테스트를 실행하거나 기록을 생성하지 않습니다.
+
+| CLI 결과 | 뜻 | 다음 행동 |
+| --- | --- | --- |
+| 0 | 지정 파일이 기록과 같고 실행 중 변경이 검출되지 않음 | `execution_ok`와 실제 검사 결과·요구사항도 별도 확인 |
+| 1 | 변경·누락·불안정 또는 실행 중 변경을 발견 | 영향받는 실제 검사를 새로 실행 |
+| 2 | 추적 없는 기록, 깨진 형식, 잘못된 경로·옵션 등 | 정상으로 간주하지 않고 입력·기록 방식을 확인 |
+
+최대 32개·총 32MiB의 기존 일반 파일을 SHA-256과 크기로 비교합니다. 경로는 작업 폴더 기준이며 심볼릭 링크·Windows 재분석 지점은 허용하지 않습니다. 파일 크기나 수정 시각만 같다고 동일하게 판정하지 않습니다. 생성되는 로그·캐시·출력보다 실제 검사의 근거가 되는 코드·테스트·입력을 선택하세요.
+
+추적하지 않은 파일·패키지·외부 서비스 상태, 관측 사이에 바뀌었다가 원상복구된 모든 변화까지 증명하지 않습니다. 파일이 같아도 이전 테스트는 실패했을 수 있습니다. 결과 파일은 서명되지 않으므로 위조 방지 기능이 아니며, `watched_files`나 결과를 편집해 통과로 만들지 않습니다. 기존 `check`와 `report`가 이 검사를 자동으로 대신 실행하는 것도 아닙니다.
 
 ## 반도체 검사 집계·계측 데이터
 

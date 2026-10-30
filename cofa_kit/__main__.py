@@ -10,6 +10,7 @@ from .core import (KitError, append_log, check_workspace, doctor, init_workspace
                    profile_file, report_workspace, run_check)
 from .semiconductor import column_list, spc_summary, yield_summary
 from .relations import RELATIONSHIPS, join_audit
+from .evidence import check_evidence
 
 
 def parser() -> argparse.ArgumentParser:
@@ -35,7 +36,13 @@ def parser() -> argparse.ArgumentParser:
     run.add_argument("--id", required=True, dest="criterion_id")
     run.add_argument("--timeout", type=float, default=30)
     run.add_argument("--max-output-bytes", type=int, default=65_536)
+    run.add_argument("--watch", action="append", metavar="REL_PATH", help="Snapshot an explicit file before/after; repeat before -- (max 32 files, 32 MiB total)")
     run.add_argument("arguments", nargs=argparse.REMAINDER, help="-- COMMAND ARG ... (no shell inserted)")
+    evidence = commands.add_parser("evidence", help="Check whether explicitly watched execution inputs still have the same contents")
+    evidence_commands = evidence.add_subparsers(dest="evidence_command", required=True)
+    freshness = evidence_commands.add_parser("check", help="Read-only SHA256 comparison; fresh does not imply tests passed")
+    freshness.add_argument("--workspace", required=True)
+    freshness.add_argument("--result", required=True, help="Workspace-relative run result.json with --watch snapshots")
     data = commands.add_parser("data", help="Inspect local data relationships without joining source files")
     data_commands = data.add_subparsers(dest="data_command", required=True)
     join = data_commands.add_parser("join-check", help="Check key cardinality and predict join row counts")
@@ -91,8 +98,11 @@ def main(argv: list[str] | None = None) -> int:
             exit_code = 0 if result["ok"] else 1
         elif args.command == "run":
             arguments = args.arguments[1:] if args.arguments[:1] == ["--"] else args.arguments
-            result = run_check(args.workspace, args.criterion_id, arguments, timeout=args.timeout, max_output_bytes=args.max_output_bytes)
+            result = run_check(args.workspace, args.criterion_id, arguments, timeout=args.timeout, max_output_bytes=args.max_output_bytes, watch=args.watch)
             exit_code = 0 if result["ok"] else 1
+        elif args.command == "evidence":
+            result = check_evidence(args.workspace, args.result)
+            exit_code = 0 if result["fresh"] else 1
         elif args.command == "semi":
             if args.analysis == "yield":
                 result = yield_summary(args.file, group_by=column_list(args.group_by), key=column_list(args.key),

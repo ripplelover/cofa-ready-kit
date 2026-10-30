@@ -1,5 +1,7 @@
 # 필요한 순간에 하나씩 사용하는 요청문
 
+[시험 첫 화면](../README.md) · [전체 문서 지도](../docs/INDEX.md)
+
 각 파일의 코드블록을 제공된 Codex에서 사용한다. 실제 과제 안내와 남은 시간에 맞춰 요청하며, 모든 파일을 한 번에 입력할 필요는 없다. 스킬이 자동으로 검색되지 않을 때는 각 요청문에 있는 `SKILL.md` 직접 읽기 방식을 사용한다.
 
 | 상황 | 요청문 | 목적 |
@@ -11,6 +13,7 @@
 | 오류가 반복될 때 | [RESCUE](RESCUE.md) | 작은 재현 사례로 원인 확인과 최소 수정 |
 | 제출 확정 전 | [VERIFY](VERIFY.md) | 필수 파일·실행 증거·수동 확인 점검 |
 | 반도체 검사·측정 자료가 실제 과제에 있을 때 | [SEMICONDUCTOR](SEMICONDUCTOR.md) | 분모·재검사·계열·기준 구간을 확인한 뒤 필요한 분석만 적용 |
+| 실제로 예측·분류·회귀 모델을 학습·평가할 때 | [MODEL-EVAL](MODEL-EVAL.md) | 예측 시점·분할·누수·기준선·지표를 먼저 확인 |
 | 시험 전 또는 제출 확정 전 연습 | [PRACTICE](PRACTICE.md) | 본인의 판단과 검증을 자기 말로 설명 |
 
 **실제 후속 서술형 단계에서는 이 요청문과 AI를 사용하지 않는다.** 본인이 직접 답하며 복사·붙여넣기도 사용할 수 없다. `PRACTICE`의 질문은 자기 이해를 점검하는 연습이며 실제 출제 문항의 예측이나 정답이 아니다.
@@ -41,4 +44,4 @@
 
 이 틀은 [OpenAI의 스킬 범위·입출력 지침](https://learn.chatgpt.com/docs/build-skills)과 [같은 사례·기준으로 변경을 비교하는 평가 안내](https://developers.openai.com/api/docs/guides/promptfoo-codex)를 참고한 우리 적용 방식이다. 해당 API 도구·개인 키를 시험에 설치하라는 뜻은 아니다. [공식 자료와 적용 범위](../docs/RESEARCH.md#openai-공식-자료로-재점검한-내용)
 
-처음 사용하는 사람은 [README의 시작 요청](../README.md#2-ai-입력란에-이것만-보내세요) 하나로 시작한다. 더 자세한 명령이 필요할 때만 [상세 사용 설명서](../docs/MANUAL.md)를 읽는다. 반도체 명령을 직접 실행해 보고 싶으면 [합성 데이터 실습](../docs/SEMICONDUCTOR-WALKTHROUGH.md)을 따른다.
+처음 사용하는 사람은 [README의 시작 요청](../README.md#2-제공-codex에-시작-요청-보내기) 하나로 시작한다. 더 자세한 명령이 필요할 때만 [상세 사용 설명서](../docs/MANUAL.md)를 읽는다. 반도체 명령을 직접 실행해 보고 싶으면 [합성 데이터 실습](../docs/SEMICONDUCTOR-WALKTHROUGH.md)을 따른다.

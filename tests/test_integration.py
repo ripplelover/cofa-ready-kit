@@ -88,7 +88,7 @@ class MCPTest(unittest.TestCase):
             replies = [json.loads(x) for x in result.stdout.splitlines()]
             self.assertEqual([x['id'] for x in replies], [1, 2, 3, 4])
             self.assertEqual({tool['name'] for tool in replies[1]['result']['tools']},
-                             {'workspace_check', 'profile_csv', 'semiconductor_yield', 'spc_monitor', 'csv_join_audit'})
+                             {'workspace_check', 'profile_csv', 'semiconductor_yield', 'spc_monitor', 'csv_join_audit', 'evidence_freshness'})
             self.assertFalse(replies[2]['result']['isError'], replies[2])
             self.assertIsInstance(json.loads(replies[2]['result']['content'][0]['text']), dict)
             self.assertTrue(replies[3]['result']['isError'])

@@ -1,5 +1,7 @@
 # 시험 전 공개 저장소 게시
 
+[시험 첫 화면](../README.md) · [전체 문서 지도](INDEX.md)
+
 목표 저장소: `https://github.com/ripplelover/cofa-ready-kit`
 
 이 문서는 **시험 전 개인 PC에서 범용 준비 키트를 게시하는 절차**입니다. 시험 중 작업 파일·문제·결과물을 GitHub로 보내는 데 사용하지 않습니다. 공개로 게시되기 전에는 다른 환경에서 Clone할 수 없습니다.

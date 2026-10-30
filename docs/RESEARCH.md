@@ -1,5 +1,7 @@
 # 공식 사례·공개 저장소 조사와 실제 반영
 
+[시험 첫 화면](../README.md) · [전체 문서 지도](INDEX.md)
+
 조회일: Cofa·GitHub는 **2026-10-30 KST**, OpenAI 공식 자료와 구현 재점검은 **2026-10-31 KST**. Cofa 공식 사이트의 내부 링크·시연 HTML, 참가자 제공 PDF 3개, GitHub 공개 검색·README·주요 파일을 대조했다. 외부 저장소 코드는 실행하거나 복사하지 않았다. 공개 자료는 수시로 바뀌며 준비 저장소의 주장 자체가 대회 규칙은 아니다.
 
 ## Cofa 공식 사이트를 실제 확인한 결과
@@ -66,7 +68,7 @@ GitHub 공개 API의 `sort=updated&order=desc`로 검색했다. 인증 없이 �
 | --- | --- | --- |
 | 설치·문서·스킬 호출을 먼저 배워야 하는 복잡성 | README의 제공 Codex 시작 요청 한 번, 필요한 스킬 파일 직접 읽기, 설치·MCP 선택형 | 경로·문서 간 흐름 검토. 실제 Cofa 파일 접근은 사전 체험 필요 |
 | 기존 코드 오류 수정 분기가 얕음 | 변경 전 재현·API 계약·회귀 테스트·최소 수정·정상 동작 보존을 기존 build/triage/verify에 추가 | 공개 데모와 대조한 지침 보완. 시험 당일 문제를 가정하지 않음 |
-| 검증 후 파일 변경·통합을 놓칠 수 있음 | 영향받는 변경 후 관련 검사 재실행, 통합 결과에서 재검증 명시 | 절차로 확인. 자동 fingerprint 대조 기능은 구현하지 않음 |
+| 검증 후 파일 변경·통합을 놓칠 수 있음 | 관련 검사 재실행 지침에 v1.3.0의 선택형 `run --watch`·파일 대조 추가 | 지정한 파일의 전후·현재 SHA256 비교. 전체 의존성이나 기능 성공을 증명하지 않음 |
 | 기존 로그 형식·마지막 개행에 따라 기록 손상 가능 | v1.2.1에서 쓰기 전 검사·보존, run의 명령 실행 전 검사 | 재현 후 회귀 테스트로 검증 |
 | Node의 테스트 0개를 명령 성공으로 볼 수 있음 | Node 기본 TAP의 0개·skip·TODO·실패 구분 | 실제 Node 실행 검사. Jest/Vitest·모든 출력 형식 지원은 아님 |
 
@@ -74,7 +76,11 @@ GitHub 공개 API의 `sort=updated&order=desc`로 검색했다. 인증 없이 �
 
 ## Skill·MCP를 더 추가해야 하나
 
-현재 다섯 스킬은 문제 파악·구현·검증·반도체 판단·제출 전 이해 연습을 다룬다. 새 문제에 맞는 핵심 보완은 기존 코드 수정 지침이었다. 새 스킬 이름이나 MCP 서버를 더 늘릴 필요는 확인되지 않았다.
+v1.3.0에서는 기존 다섯 스킬에 **실제 분류·회귀 과제에만 쓰는 `cofa-model-eval`**을 추가했다. 예측 시점에 알 수 없는 특징, 시간·개체 누수, 잘못된 분할·임계값 선정, 불균형 자료의 정확도 과장을 점검한다. 단순 집계·API 수정에는 읽지 않는다. 기존 반도체 스킬은 검사 단위·분모·재검사·장비 비교를, 새 스킬은 모델 학습·평가를 담당한다.
+
+공식 근거는 scikit-learn의 [데이터 누수](https://scikit-learn.org/stable/common_pitfalls.html#data-leakage), [시간·그룹 분할](https://scikit-learn.org/stable/modules/cross_validation.html), [평가지표](https://scikit-learn.org/stable/modules/model_evaluation.html), [분류 임계값](https://scikit-learn.org/stable/modules/classification_threshold.html) 문서를 확인했다. 특정 라이브러리 설치를 요구하지 않고 기존 스택에서 원칙을 적용한다.
+
+MCP는 기존 서버에 **`evidence_freshness`** 한 도구를 추가했다. 이미 `run --watch`로 선택한 파일의 기록이 현재 내용과 같은지 읽기만 한다. 실패한 명령도 파일은 같을 수 있어 `fresh`와 `execution_ok`를 분리한다. 실제 CLI·stdio 검증과 한계는 [검증 기록](VALIDATION.md)에 있다. 새로운 계정·원격 서버·별도 연결은 추가하지 않았으며 README의 시작 요청 한 번을 유지한다.
 
 ## OpenAI 공식 자료로 재점검한 내용
 
@@ -87,7 +93,7 @@ GitHub 공개 API의 `sort=updated&order=desc`로 검색했다. 인증 없이 �
 | [Rethinking skills and prompts for GPT-6 Astra](https://developers.openai.com/blog/rethinking-skills-and-prompts-for-gpt-6-astra), 2026-09-11 · 블로그 | 짧고 정확한 적용 조건, 필요한 참조만 읽기, 모델에 따라 다른 지침 필요성 | 선택형 참조와 짧은 진입 흐름 유지. Astra 조언을 Sol에 일괄 적용해 검증 지침을 제거하지 않음 |
 | [Codex as a platform](https://developers.openai.com/blog/codex-as-a-platform), 2026-08-19 · 블로그 | 하네스는 맥락·도구·진행·오류·권한·대화 상태를 관리하는 실행 체계 | 제공 Codex를 활용하고 준비 키트는 지침·로컬 검사에 집중 |
 | [Iterating Development Workflows with Codex](https://developers.openai.com/cookbook/examples/codex/iterating-development-workflows-with-codex), 2026-08-03 · Cookbook | 목표·맥락·계획·관찰 기록을 구분하며 제시된 파일명은 선택적 관례 | 기존 작업 기록을 유지하고 재개 시 바뀐 부분·최근 검증·다음 행동만 확인 |
-| [Build skills](https://learn.chatgpt.com/docs/build-skills), 조회일 기준 문서 | 한 역할에 집중, 분명한 입출력, 설명과 실제 호출 상황을 대조 | 다섯 역할 유지, 합성 사례에서 적용·비적용과 미검증 표시 확인 |
+| [Build skills](https://learn.chatgpt.com/docs/build-skills), 조회일 기준 문서 | 한 역할에 집중, 분명한 입출력, 설명과 실제 호출 상황을 대조 | 스킬마다 적용 조건과 역할 구분. 합성 사례에서 적용·비적용과 미검증 표시 확인 |
 | [Get started with Promptfoo](https://developers.openai.com/api/docs/guides/promptfoo-codex), 조회일 기준 문서 | 같은 사례·판정 기준으로 변경 전후 비교하고 실패·지연도 확인 | 독립 기대값과 고정 입력으로 수정 효과 확인. 개인 API 키가 필요한 예제 도구는 시험에 추가하지 않음 |
 
 위 자료에서 배운 원칙을 우리 작업에 적용한 판단은 다음과 같다.
@@ -105,7 +111,8 @@ GitHub 공개 API의 `sort=updated&order=desc`로 검색했다. 인증 없이 �
 | 실제 필요 | 쓰는 도구 | 선택 이유 |
 | --- | --- | --- |
 | 파일·코드 조사, 기존 테스트·타입/빌드 검사 | 제공 Codex와 기존 프로젝트 터미널 명령 | 새 filesystem·shell MCP와 역할 중복을 만들지 않음 |
-| CSV·검사 수율·I-MR·키 관계 확인 | 현재 CLI, 필요할 때만 로컬 MCP 5개 | 추가 계정 없이 같은 작업 환경에서 읽기 전용 검사 |
+| 구조·CSV·검사 수율·I-MR·키 관계·선택 파일 변경 확인 | 현재 CLI, 필요할 때만 로컬 MCP 6개 | 추가 계정 없이 같은 작업 환경에서 읽기 전용 검사 |
+| 분류·회귀 모델을 실제 학습·평가 | 조건부 `cofa-model-eval`과 제공된 프로젝트 스택 | 업무 기준·분할·기준선을 확인한 뒤 실제 지표로 비교 |
 | 실제 화면 점검 | 사람이 Cofa Browser 사용 | PDF의 Computer Use 금지와 수동 확인 안내 적용 |
 | SQL·XLSX·예측 모델 | 실제 파일·목표·제공 의존성이 확인된 뒤 선택 | 문제가 나오기 전 DB·모델·RAG·대시보드를 고정하지 않음 |
 | 공개 기술 문서 참고 | 제공 환경에서 시험 내용을 빼고 일반 질의 | 원격 MCP·외부 AI로 과제 파일을 전송하지 않음 |

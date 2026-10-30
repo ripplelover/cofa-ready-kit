@@ -12,6 +12,11 @@ VERSIONS = ('2025-11-25', '2025-06-18', '2025-03-26', '2024-11-05')
 MAX_MESSAGE = 64 * 1024
 MAX_OUTPUT = 128 * 1024
 TOOLS = [
+    {'name': 'evidence_freshness',
+     'description': 'Read-only SHA256 comparison of explicitly watched run files. Freshness is separate from command success and cannot detect forged metadata or untracked changes.',
+     'inputSchema': {'type': 'object', 'properties': {'result_path': {'type': 'string'}},
+                     'required': ['result_path'], 'additionalProperties': False},
+     'annotations': {'readOnlyHint': True, 'destructiveHint': False, 'openWorldHint': False}},
     {'name': 'workspace_check',
      'description': 'Check required artifact/evidence existence and declared completion. This does NOT prove functional correctness.',
      'inputSchema': {'type': 'object', 'properties': {'manifest': {'type': 'string', 'default': 'requirements.json'}}, 'additionalProperties': False},
@@ -88,7 +93,14 @@ def column_list(value):
 def call_tool(root, name, args):
     if not isinstance(args, dict):
         raise ValueError('arguments must be an object')
-    if name == 'workspace_check':
+    if name == 'evidence_freshness':
+        if set(args) != {'result_path'}:
+            raise ValueError('evidence_freshness requires only result_path')
+        local_path(root, args.get('result_path'))
+        # Preserve the original spelling so the CLI can reject symlink/reparse
+        # components instead of hiding them through resolve().
+        command = ['evidence', 'check', '--workspace', str(root), '--result', args['result_path']]
+    elif name == 'workspace_check':
         if set(args) - {'manifest'}:
             raise ValueError('unknown argument')
         manifest = local_path(root, args.get('manifest', 'requirements.json'))
@@ -192,7 +204,7 @@ class Server:
             self.ready = False
             result = {'protocolVersion': version if version in VERSIONS else VERSIONS[0],
                       'capabilities': {'tools': {'listChanged': False}},
-                      'serverInfo': {'name': 'cofa-local', 'version': '1.2.2'}}
+                      'serverInfo': {'name': 'cofa-local', 'version': '1.3.0'}}
         elif method == 'ping':
             result = {}
         elif not self.ready:

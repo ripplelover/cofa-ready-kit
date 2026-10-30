@@ -403,7 +403,7 @@ def _combine_test_summaries(summaries: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 def run_check(workspace: str | Path, criterion_id: str, command: list[str], *, timeout: float = 30,
-              max_output_bytes: int = 65_536) -> dict[str, Any]:
+              max_output_bytes: int = 65_536, watch: list[str] | None = None) -> dict[str, Any]:
     """Run an explicit one-shot command locally and record bounded observed output.
 
     This is not a sandbox: use only commands permitted by the task. No shell is
@@ -424,6 +424,8 @@ def run_check(workspace: str | Path, criterion_id: str, command: list[str], *, t
     # Do not run a command and only then discover that an unrelated project's
     # log would be modified. This check does not write or repair existing data.
     _log_append_state(root)
+    from .evidence import prepare_watch, finish_watch
+    watched_before = prepare_watch(root, watch) if watch is not None else None
     evidence_root = contained_path(root, "evidence")
     evidence_root.mkdir(exist_ok=True)
     run_name = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") + "-" + uuid.uuid4().hex[:8]
@@ -467,6 +469,8 @@ def run_check(workspace: str | Path, criterion_id: str, command: list[str], *, t
                   "duration_seconds": round(time.monotonic() - clock, 3), "exit_code": None,
                   "timed_out": False, "ok": False, "launched": False,
                   "error": str(error), "evidence_directory": f"evidence/{run_name}"}
+        if watched_before is not None:
+            record["watched_files"] = finish_watch(root, watched_before)
         (destination / "result.json").write_text(json.dumps(record, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         append_log(root, "test", f"{criterion_id}: command could not launch; no test result established", [f"evidence/{run_name}/result.json"])
         return record
@@ -512,7 +516,10 @@ def run_check(workspace: str | Path, criterion_id: str, command: list[str], *, t
         for item in _test_summaries(parse_bytes.decode("utf-8", errors="replace").replace("\r\n", "\n")):
             summaries.append({**item, "stream": name, "evidence_path": tail_path})
     summary = _combine_test_summaries(summaries)
+    watched = finish_watch(root, watched_before) if watched_before is not None else None
     ok = process.returncode == 0 and not timed_out and streams_closed and not summary["ambiguous"] and not summary["no_tests"] and not summary["all_skipped"] and not summary.get("all_pending", False) and not summary.get("reported_failure", False)
+    if watched is not None and watched["changed_during_run"]:
+        ok = False
     record = {"criterion_id": criterion_id, "command": command, "started_at": started,
               "duration_seconds": round(time.monotonic() - clock, 3), "exit_code": process.returncode,
               "timed_out": timed_out, "launched": True, "ok": ok,
@@ -521,6 +528,8 @@ def run_check(workspace: str | Path, criterion_id: str, command: list[str], *, t
               "tail_capture": tail_capture,
               "test_summary": summary, "evidence_directory": f"evidence/{run_name}",
               "limits": "Command success is not functional correctness. Requirement statuses are unchanged. Timeout kills only the direct child; do not run servers or launch background processes."}
+    if watched is not None:
+        record["watched_files"] = watched
     (destination / "result.json").write_text(json.dumps(record, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     evidence_paths.insert(0, f"evidence/{run_name}/result.json")
     append_log(root, "test", f"{criterion_id}: observed command exit={process.returncode}, command_ok={ok}, timeout={timed_out}, ambiguous={summary['ambiguous']}, no_tests={summary['no_tests']}, all_skipped={summary['all_skipped']}, all_pending={summary.get('all_pending', False)}; correctness requires review", evidence_paths)
