@@ -32,6 +32,8 @@ python scripts/cofa.py doctor
 
 Python 3.10 이상이고 출력의 `python_supported`가 `true`인지 확인한다. `versions`에 없는 실행 프로그램은 `null`로 나올 수 있다. 오늘 PC에 Codex CLI가 없더라도 키트의 데이터 검사와 기록 기능은 연습할 수 있다. `doctor`는 설치된 실행 파일의 버전만 확인한다. Cofa 접속, 도구 허용, 모델 응답, MCP 연결을 검증하는 명령은 아니다.
 
+**2026-10-30 로컬 리허설에서 실제로 발견한 차이:** 이 Windows PC의 Git Bash에서는 `python3 --version`이 실패했고 `python --version`은 3.10.7을 반환했다. `python3.exe`라는 파일이 검색돼도 실행 가능한 Python이라는 뜻은 아니다. 내일 제공 환경에서도 먼저 버전 명령을 실행하고, 성공한 이름을 이후 명령에 일관되게 사용한다. 이 결과는 Cofa의 Python 이름이나 운영체제를 확인한 것이 아니다.
+
 처음 받는 경우에만, 원하는 상위 폴더에서 다음을 실행한다.
 
 ```powershell
