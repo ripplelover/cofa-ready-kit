@@ -1,0 +1,84 @@
+"""Run with python -m cofa_kit. All outputs remain on the local machine."""
+import argparse
+import csv
+import json
+import sys
+from pathlib import Path
+
+from . import __version__
+from .core import (KitError, append_log, check_workspace, doctor, init_workspace,
+                   profile_file, report_workspace, run_check)
+
+
+def parser() -> argparse.ArgumentParser:
+    cli = argparse.ArgumentParser(description="Local preparation tools; no built-in AI, network, or submission actions. 'run' executes your explicit command.")
+    cli.add_argument("--version", action="version", version=__version__)
+    commands = cli.add_subparsers(dest="command", required=True)
+    commands.add_parser("doctor", help="Check runtime presence/version without reading credentials")
+    init = commands.add_parser("init", help="Create requirement and decision files without overwriting")
+    init.add_argument("--workspace", required=True)
+    profile = commands.add_parser("profile", help="Summarize a bounded sample of CSV/JSON records")
+    profile.add_argument("file")
+    profile.add_argument("--format", choices=["auto", "csv", "json"], default="auto")
+    profile.add_argument("--encoding", choices=["utf-8-sig", "cp949"], default="utf-8-sig")
+    profile.add_argument("--max-rows", type=int, default=10_000)
+    profile.add_argument("--output", help="Write to a NEW file; existing files are never overwritten")
+    log = commands.add_parser("log", help="Append an actual decision/test/assumption to the local log")
+    log.add_argument("--workspace", required=True)
+    log.add_argument("--kind", required=True, choices=["decision", "test", "assumption"])
+    log.add_argument("--summary", required=True)
+    log.add_argument("--evidence", nargs="*", default=[], metavar="RELATIVE_PATH")
+    run = commands.add_parser("run", help="Run an explicit one-shot command and save bounded local execution evidence")
+    run.add_argument("--workspace", required=True)
+    run.add_argument("--id", required=True, dest="criterion_id")
+    run.add_argument("--timeout", type=float, default=30)
+    run.add_argument("--max-output-bytes", type=int, default=65_536)
+    run.add_argument("arguments", nargs=argparse.REMAINDER, help="-- COMMAND ARG ... (no shell inserted)")
+    for name in ("check", "report"):
+        command = commands.add_parser(name, help="Check required evidence paths" if name == "check" else "Render actual recorded evidence as Markdown")
+        command.add_argument("--workspace", required=True)
+        command.add_argument("--manifest", default="requirements.json", help="Path relative to workspace")
+        if name == "report":
+            command.add_argument("--output", help="Write to a NEW file; existing files are never overwritten")
+    return cli
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = parser().parse_args(argv)
+    try:
+        exit_code = 0
+        if args.command == "doctor":
+            result = doctor()
+        elif args.command == "init":
+            result = init_workspace(args.workspace)
+        elif args.command == "profile":
+            result = profile_file(args.file, format=args.format, encoding=args.encoding, max_rows=args.max_rows)
+        elif args.command == "log":
+            result = append_log(args.workspace, args.kind, args.summary, args.evidence)
+        elif args.command == "check":
+            result = check_workspace(args.workspace, args.manifest)
+            exit_code = 0 if result["ok"] else 1
+        elif args.command == "run":
+            arguments = args.arguments[1:] if args.arguments[:1] == ["--"] else args.arguments
+            result = run_check(args.workspace, args.criterion_id, arguments, timeout=args.timeout, max_output_bytes=args.max_output_bytes)
+            exit_code = 0 if result["ok"] else 1
+        else:
+            result = report_workspace(args.workspace, args.manifest)
+        output = result if isinstance(result, str) else json.dumps(result, ensure_ascii=False, indent=2, allow_nan=False)
+        if getattr(args, "output", None):
+            with Path(args.output).expanduser().open("x", encoding="utf-8", newline="\n") as stream:
+                stream.write(output.rstrip() + "\n")
+            print(json.dumps({"written": args.output}, ensure_ascii=False))
+        else:
+            print(output)
+        return exit_code
+    except (KitError, OSError, UnicodeError, json.JSONDecodeError, csv.Error) as error:
+        print(json.dumps({"error": str(error)}, ensure_ascii=False), file=sys.stderr)
+        return 2
+
+
+if __name__ == "__main__":
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")
+    raise SystemExit(main())

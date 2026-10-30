@@ -1,0 +1,13 @@
+.local-tools/
+.private/
+work/
+__pycache__/
+*.pyc
+.venv/
+node_modules/
+.env
+.env.*
+!.env.example
+dist/
+*.pdf
+*.zip
