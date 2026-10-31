@@ -4,6 +4,8 @@
 
 **선택형 고급 설정 문서다.** 이번 시험의 기본 흐름은 [README의 시작 요청](../README.md#2-제공-codex에-시작-요청-보내기)으로 필요한 지침 파일을 직접 읽는 방식이며 설치·MCP 등록이 필요하지 않다. 스킬 이름 호출 또는 로컬 검사 도구가 실제로 필요할 때 아래 항목을 사용한다.
 
+사전 체험의 **초기 CLI·`mcpServers` 입력칸**, 추가 문서 MCP·플러그인 후보를 따라 확인하려면 [MCP·플러그인 안내](MCP-PLUGINS.md)를 사용한다. 설치와 연결을 자동으로 완료했다는 뜻은 아니다.
+
 ## 1. 오늘 개인 PC에서 확인
 
 저장소 폴더에서 PowerShell로 실행합니다.
@@ -82,7 +84,7 @@ v1.3.0으로 갱신할 때도 같은 원칙입니다. 모델 평가 스킬은 �
 python3 .cofa-kit/scripts/install.py --workspace . --mcp-json
 ```
 
-현재 환경의 **실제 Python 경로와 실제 작업 경로**가 들어간 JSON을 출력합니다. 출력에는 `mcpServers.cofa_local.command`와 `args`가 들어갑니다. PDF는 MCP 탭의 JSON 편집·저장을 지원한다고 설명하지만 정확한 JSON 스키마를 명시하지는 않습니다. 탭 예시와 구조가 같을 때 기존 서버를 보존하며 `cofa_local` 항목을 추가하세요. 구조가 다르면 Cofa Helper로 확인하고 그동안 CLI를 사용합니다. 전체 설정을 지우고 교체하지 마세요.
+현재 환경의 **실제 Python 경로와 실제 작업 경로**가 들어간 JSON을 출력합니다. 출력에는 `mcpServers.cofa_local.command`와 `args`가 들어갑니다. 참가자는 사전 체험에서 `mcpServers` 최상위 이름을 확인했습니다. 이는 전체 필드·HTTP 연결 지원까지 확인했다는 뜻은 아닙니다. PDF는 MCP 탭의 JSON 편집·저장을 설명합니다. 기존 `mcpServers` 안에 `cofa_local`만 추가하고, 빈 같은 구조의 설정이면 생성된 전체 JSON을 사용하세요. 실제 형식이 다르면 Cofa Helper로 확인하고 그동안 CLI를 사용합니다. 기존 설정을 지우거나 `mcpServers`를 두 번 중첩하지 마세요.
 
 ### 일반 Codex CLI에서 사용하는 표준 명령
 
@@ -111,7 +113,7 @@ python3 .cofa-kit/scripts/cofa.py profile .cofa-kit/examples/defects.csv
 python3 .cofa-kit/scripts/cofa.py check --workspace .
 ```
 
-설정에 2–3분 이상 막히면 CLI로 진행하는 것이 운영상 유리하다는 제안입니다. 연결 성공 자체가 평가 목표라는 근거는 없습니다. 원격 MCP를 무더기로 연결하면 문제나 코드가 요청에 실릴 수 있으므로, 이 키트의 시험 기본 구성에는 원격 MCP를 넣지 않았습니다.
+설정에 2–3분 이상 막히면 CLI로 진행하는 것이 운영상 유리하다는 제안입니다. 연결 성공 자체가 평가 목표라는 근거는 없습니다. 원격 MCP를 무더기로 연결하면 문제나 코드가 요청에 실릴 수 있으므로, 이 키트의 시험 기본 구성에는 원격 MCP를 넣지 않았습니다. [OpenAI Docs 선택형 후보와 플러그인](MCP-PLUGINS.md)은 별도로 검토하며 제공 환경의 지원·실제 필요·보낼 질의를 먼저 확인합니다.
 
 ## 5. Browser 확인
 

@@ -14,6 +14,7 @@
 | [SKILLS-BEGINNER.md](SKILLS-BEGINNER.md) | 스킬 이름 호출이나 여러 스킬 조합이 궁금할 때 | 셸과 Codex 입력란, 선택형 설치, 직접 파일 읽기, 병렬 에이전트와의 차이 |
 | [MANUAL.md](MANUAL.md) | 설치·업데이트·기록 도구의 자세한 예제가 필요할 때 | 개인 PC와 Cofa 경로 구분, CLI 실행, 충돌 처리, 오류 복구의 상세 설명 |
 | [SETUP.md](SETUP.md) | 이름 호출용 설치 또는 로컬 MCP 연결을 선택했을 때 | 실제 환경에서 확인할 설치·연결 설정과 파일 직접 읽기 대안 |
+| [MCP-PLUGINS.md](MCP-PLUGINS.md) | 초기 CLI·MCP 입력칸에서 연결하거나 추가 도구를 검토할 때 | `mcpServers` 설정·실제 호출 확인, OpenAI Docs 후보, 플러그인 지원·규칙 구분 |
 | [TOOLS.md](TOOLS.md) | 특정 CLI 명령이나 검증 기록 확인법이 필요할 때 | 요구사항·실행 기록·CSV 검사·반도체 계산·검증 이후 파일 변경 확인 |
 
 ## 실제 과제 유형에 맞는 자료를 찾을 때
