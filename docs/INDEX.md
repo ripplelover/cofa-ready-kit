@@ -51,7 +51,7 @@ README의 기본 진행 중 특정 작업을 따로 요청하고 싶을 때 사�
 | [cofa-triage](../skills/cofa-triage/SKILL.md) | 목표·필수조건·업무 기준을 파악할 때 | 요구사항·출처·질문·검증 기준 연결 |
 | [cofa-build](../skills/cofa-build/SKILL.md) | 필수 기능 구현 또는 기존 코드 수정 | 작은 동작부터 구현하고 기존 계약·정상 동작을 보존 |
 | [cofa-verify](../skills/cofa-verify/SKILL.md) | 구현 완료 주장·제출 준비를 점검할 때 | 실제 실행과 독립 기대값으로 확인하고 현재 파일과 증거를 대조 |
-| [cofa-explain](../skills/cofa-explain/SKILL.md) | 제출 확정 전 본인 설명 연습 | 선택 이유·실제 검증·한계를 본인의 말로 설명하도록 점검 |
+| [cofa-explain](../skills/cofa-explain/SKILL.md) | 제출 확정 전 작업 정리·본인 설명 연습 | 구현·AI 활용·참가자 판단·검증·한계를 실제 근거로 정리하고 이해 점검 |
 | [cofa-semiconductor](../skills/cofa-semiconductor/SKILL.md) | 실제 반도체 검사·결함·설비 데이터 분석 | 단위·분모·재검 정책·관리한계와 분석 해석 확인 |
 | [cofa-model-eval](../skills/cofa-model-eval/SKILL.md) | 표·시계열 예측 모델의 실제 학습·평가 | 누수·분할·기준선·평가지표 점검; 단순 집계·SPC·API 수정은 제외 |
 
