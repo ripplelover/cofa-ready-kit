@@ -14,7 +14,7 @@
 | [SKILLS-BEGINNER.md](SKILLS-BEGINNER.md) | 스킬 이름 호출이나 여러 스킬 조합이 궁금할 때 | 셸과 Codex 입력란, 선택형 설치, 직접 파일 읽기, 병렬 에이전트와의 차이 |
 | [MANUAL.md](MANUAL.md) | 설치·업데이트·기록 도구의 자세한 예제가 필요할 때 | 개인 PC와 Cofa 경로 구분, CLI 실행, 충돌 처리, 오류 복구의 상세 설명 |
 | [SETUP.md](SETUP.md) | 이름 호출용 설치 또는 로컬 MCP 연결을 선택했을 때 | 실제 환경에서 확인할 설치·연결 설정과 파일 직접 읽기 대안 |
-| [MCP-PLUGINS.md](MCP-PLUGINS.md) | 초기 CLI·MCP 입력칸에서 연결하거나 추가 도구를 검토할 때 | `mcpServers` 설정·실제 호출 확인, OpenAI Docs 후보, 플러그인 지원·규칙 구분 |
+| [MCP-PLUGINS.md](MCP-PLUGINS.md) | 초기 CLI·MCP 입력칸에서 연결하거나 추가 도구를 검토할 때 | 로컬+공식 문서 두 서버 설정, 실제 호출 확인·자동 선택 조건, 플러그인 지원·규칙 구분 |
 | [TOOLS.md](TOOLS.md) | 특정 CLI 명령이나 검증 기록 확인법이 필요할 때 | 요구사항·실행 기록·CSV 검사·반도체 계산·검증 이후 파일 변경 확인 |
 
 ## 실제 과제 유형에 맞는 자료를 찾을 때
@@ -32,7 +32,7 @@ README의 기본 진행 중 특정 작업을 따로 요청하고 싶을 때 사�
 | 요청문 | 필요한 시점 | 맡길 작업 |
 | --- | --- | --- |
 | [prompts/README.md](../prompts/README.md) | 요청문을 고르거나 직접 작성할 때 | 상황별 요청 선택과 목표·자료·제약·완료 기준·진행 범위 정리 |
-| [SCENARIO.md](../prompts/SCENARIO.md) | README의 시작 요청을 받은 Codex가 진행할 때 | 실제 과제부터 읽고 필요한 스킬만 적용; 현재 증거를 기준으로 재개 |
+| [SCENARIO.md](../prompts/SCENARIO.md) | README의 시작 요청을 받은 Codex가 진행할 때 | 실제 과제부터 읽고 스킬·연결된 MCP 도구를 선택; 현재 증거를 기준으로 재개 |
 | [START.md](../prompts/START.md) | 요구사항 파악만 따로 요청할 때 | 실제 과제의 필수조건·제출물·확인 질문 정리 |
 | [BUILD.md](../prompts/BUILD.md) | 확정된 필수조건을 구현하거나 기존 결함을 고칠 때 | 기존 스택·계약을 유지한 작은 구현과 관련 검증 |
 | [RESCUE.md](../prompts/RESCUE.md) | 오류가 발생하거나 같은 수정이 반복될 때 | 작은 재현 입력·기대값·실제값으로 원인을 좁혀 최소 수정 |

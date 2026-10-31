@@ -36,10 +36,60 @@ class InstallTest(unittest.TestCase):
     def test_mcp_config_is_local_and_has_explicit_root(self):
         installer = load_script('install')
         with tempfile.TemporaryDirectory() as temp:
-            config = installer.mcp_config(temp)['mcpServers']['cofa_local']
+            servers = installer.mcp_config(temp)['mcpServers']
+            self.assertEqual(set(servers), {'cofa_local'})
+            config = servers['cofa_local']
             self.assertNotIn('url', config)
             self.assertEqual(config['args'][-1], str(Path(temp).resolve()))
             self.assertEqual(config['command'], sys.executable)
+
+    def test_mcp_json_cli_optional_docs_preserves_workspace_and_unicode_paths(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp) / '과제 폴더'
+            root.mkdir()
+            (root / '.codex').mkdir()
+            (root / '.codex' / 'config.toml').write_text('# existing config\n', encoding='utf-8')
+            (root / 'mcp.json').write_text('{"mcpServers":{"existing":{"command":"keep"}}}\n',
+                                         encoding='utf-8')
+            (root / 'AGENTS.md').write_text('Preserve the task instructions.\n', encoding='utf-8')
+            before = {p.relative_to(root): p.read_bytes() for p in root.rglob('*') if p.is_file()}
+            for with_docs in (False, True):
+                with self.subTest(with_docs=with_docs):
+                    command = [sys.executable, str(ROOT / 'scripts' / 'install.py'),
+                               '--workspace', str(root), '--mcp-json']
+                    if with_docs:
+                        command.append('--with-openai-docs')
+                    result = subprocess.run(command, cwd=root, capture_output=True, text=True,
+                                            encoding='utf-8', timeout=10)
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    config = json.loads(result.stdout)
+                    self.assertEqual(set(config), {'mcpServers'})
+                    servers = config['mcpServers']
+                    expected = {'cofa_local', 'openai_docs'} if with_docs else {'cofa_local'}
+                    self.assertEqual(set(servers), expected)
+                    self.assertEqual(servers['cofa_local'], {
+                        'command': sys.executable,
+                        'args': ['-u', str(ROOT / 'scripts' / 'mcp_server.py'), '--workspace', str(root.resolve())]})
+                    self.assertTrue(Path(servers['cofa_local']['command']).is_file())
+                    if with_docs:
+                        self.assertEqual(servers['openai_docs'], {'url': 'https://developers.openai.com/mcp'})
+                    self.assertFalse((root / '.agents').exists())
+                    after = {p.relative_to(root): p.read_bytes() for p in root.rglob('*') if p.is_file()}
+                    self.assertEqual(before, after)
+
+    def test_docs_flag_without_mcp_json_is_rejected_before_install(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            sentinel = root / 'AGENTS.md'
+            sentinel.write_text('Existing task instructions\n', encoding='utf-8')
+            result = subprocess.run([sys.executable, str(ROOT / 'scripts' / 'install.py'),
+                                     '--workspace', str(root), '--with-openai-docs'],
+                                    capture_output=True, text=True, encoding='utf-8', timeout=10)
+            self.assertEqual(result.returncode, 2)
+            self.assertIn('--with-openai-docs requires --mcp-json', result.stderr)
+            self.assertEqual(result.stdout, '')
+            self.assertEqual(list(root.iterdir()), [sentinel])
+            self.assertEqual(sentinel.read_text(encoding='utf-8'), 'Existing task instructions\n')
 
     def test_install_preserves_extra_user_files_and_preflights_all_conflicts(self):
         installer = load_script('install')

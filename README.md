@@ -32,7 +32,9 @@ git clone --depth 1 https://github.com/ripplelover/cofa-ready-kit.git .cofa-kit
 현재 위치와 실제 문제 README·제출 조건부터 확인해 줘.
 키트의 README와 examples는 실제 시험 문제가 아니야.
 각 단계에 맞는 스킬을 네가 골라 필요한 SKILL.md만 직접 읽고 적용해 줘.
-연결된 로컬 MCP 도구 중 필요한 것만 골라 쓰고, 없으면 CLI나 기존 도구로 진행해 줘.
+SCENARIO의 선택 기준으로 연결된 허용 MCP 도구 중 필요한 것만 골라 써 줘.
+cofa_local은 로컬 자료 검사에, 내가 연결한 공식 openai_docs는 시험 내용 없는 공개 기술 질의에만 써 줘.
+필요 없는 도구는 호출하지 말고, 미연결·실패 시 CLI나 기존 도구로 진행해 줘.
 기존 파일·작업 기록을 보존해 줘.
 기능 작업이 끝날 때 실제 한 일과 근거를 기록하고, 제출 준비 때 작업 내역을 정리해 줘.
 먼저 실제 요구사항·필수 제출물·내가 실무자에게 물어볼 질문을 짧게 정리해 줘.
@@ -98,7 +100,7 @@ git clone --depth 1 https://github.com/ripplelover/cofa-ready-kit.git .cofa-kit
 
 **매번 스킬을 직접 고를 필요는 없습니다.** 위 시작 요청으로 Codex에 선택을 맡깁니다. 아래는 직접 지정하고 싶을 때만 쓰는 메뉴입니다. 반도체 분석에는 해당 스킬, 실제 예측 모델 과제에는 모델 평가 스킬을 골라 읽도록 진행 지침에 연결했습니다.
 
-MCP도 **연결되어 실제 도구 목록에 보이는 것 중에서** Codex가 필요한 도구를 고를 수 있습니다. `git clone`만으로 스킬 목록 등록이나 MCP 연결까지 되는 것은 아닙니다. 이 키트의 기본 흐름은 스킬 파일을 직접 읽고, MCP가 없으면 CLI·기존 도구를 사용합니다.
+MCP도 **연결되어 실제 도구 목록에 보이는 것 중에서** Codex가 필요한 도구를 고릅니다. 로컬 검사에는 `cofa_local`의 6개 도구 중 필요한 것을, 공개 OpenAI 기술문서가 필요하면 선택해 연결한 `openai_docs`를 사용하도록 구성했습니다. **여러 개를 준비해 두되 매번 모두 호출하지 않습니다.** `git clone`만으로 스킬 목록 등록이나 MCP 연결까지 되는 것은 아닙니다. MCP가 없으면 CLI·기존 도구로 진행합니다.
 
 | 지금 할 일 | 스킬 파일 |
 | --- | --- |
@@ -134,24 +136,26 @@ MCP도 **연결되어 실제 도구 목록에 보이는 것 중에서** Codex가
 
 ### MCP를 연결하고 싶다면
 
-사전 체험에서 확인한 최상위 이름은 **`mcpServers`**입니다. 아래에서 로컬 서버 설정을 만들고, 화면이 `command`·`args` 형식을 지원하는지 확인한 뒤 직접 저장합니다. 초기 Codex CLI에서도 스킬은 그대로 읽어 사용할 수 있습니다.
+사전 체험에서 확인한 최상위 이름은 **`mcpServers`**입니다. 아래 명령은 **로컬 검사 + 공식 문서, 두 서버의 설정 후보**를 만듭니다. 화면의 로컬 `command`·`args`와 원격 HTTP `url` 지원을 확인한 뒤 직접 저장합니다. 초기 Codex CLI에서도 스킬은 그대로 읽어 사용할 수 있습니다.
 
 1. **일반 터미널**의 실제 과제 폴더에서 다음을 실행합니다.
 
 ```bash
-python3 .cofa-kit/scripts/install.py --workspace . --mcp-json
+python3 .cofa-kit/scripts/install.py --workspace . --mcp-json --with-openai-docs
 ```
 
-2. **Cofa MCP 탭**의 `mcpServers` 안에 출력된 `cofa_local`을 추가하고 저장합니다. 기존 서버는 보존합니다. 이 서버 하나에 로컬 도구 6개가 들어 있습니다.
-3. **제공 Codex**에 `cofa_local의 profile_csv를 실제 호출해 .cofa-kit/examples/defects.csv를 요약해 줘. 도구가 없거나 실패하면 그대로 알려 줘.`라고 요청해 연결을 확인합니다.
+2. **Cofa MCP 탭**의 `mcpServers` 안에 출력된 `cofa_local`·`openai_docs`를 추가하고 저장합니다. 기존 서버는 보존합니다. 원격 `url` 지원이 확인되지 않으면 명령 끝의 `--with-openai-docs`를 빼서 **로컬 서버만** 생성·연결합니다. 생성기는 설정 출력만 하며 네트워크 연결·설정 저장·스킬 설치를 하지 않습니다.
+3. **제공 Codex**에 `cofa_local의 profile_csv를 실제 호출해 .cofa-kit/examples/defects.csv를 요약해 줘. 도구가 없거나 실패하면 그대로 알려 줘.`라고 요청해 연결을 확인합니다. `openai_docs`도 추가했다면 시험 자료를 포함하지 않은 `Codex MCP 연결 상태 확인 방법` 같은 일반 기술 질의로 별도 확인합니다.
+
+연결 후에는 **2번의 시작 요청만** 보내면 됩니다. 이미 작업 중이면 `아직 제출 확정 전이야. .cofa-kit/prompts/SCENARIO.md를 다시 읽고 현재 연결된 허용 MCP와 스킬 중 필요한 것만 골라 기존 작업을 이어가 줘.`라고 보냅니다. 새 기능을 위해 매번 스킬·도구 이름을 지정할 필요가 없습니다.
 
 | 추가 후보 | 사용할 때 |
 | --- | --- |
-| **cofa_local** | 로컬 CSV·반도체·검증 기록 검사. 기본으로 고려할 서버 |
-| **OpenAI Docs MCP** | 공개 OpenAI/Codex 문서가 필요할 때만. 원격 서버에는 시험 자료 없이 일반 기술 질의만 전송 |
+| **cofa_local** | 로컬 CSV·반도체·검증 기록 검사. 6개 도구 중 과제에 맞는 것만 선택 |
+| **OpenAI Docs MCP** | 선택해 연결한 경우 공개 OpenAI/Codex 문서가 필요할 때 사용. 시험 자료 없이 일반 기술 질의만 전송 |
 | **CLI 플러그인** | `codex plugin --help`로 실제 지원을 확인한 뒤 필요한 공개 지침·도구만 검토 |
 
-서버별 JSON 예제, 플러그인 확인 순서, Context7 등 기본 구성에서 제외한 후보의 이유는 **[MCP·플러그인 상세 안내](docs/MCP-PLUGINS.md)**에 모았습니다. OpenAI Docs는 자동 연결하지 않으며 실제 Cofa의 HTTP 지원을 확인해야 합니다. 플러그인 지원을 위해 CLI를 교체하거나 개인 인증·권한 설정을 바꾸지 않습니다.
+서버별 JSON 예제, 플러그인 확인 순서, Context7 등 기본 구성에서 제외한 후보의 이유는 **[MCP·플러그인 상세 안내](docs/MCP-PLUGINS.md)**에 모았습니다. 자동 선택은 Codex가 이 지침을 적용하는 흐름이며 별도 실행 서비스나 규칙 차단 장치가 아닙니다. 원격 서버 자동 연결이나 새 플러그인 자동 설치는 하지 않으며 실제 Cofa의 HTTP 지원을 확인해야 합니다. CLI 교체나 개인 인증·권한 변경도 필요하지 않습니다.
 
 v1.3.0: **스킬 6개·로컬 MCP 도구 6개**. MCP 없이도 스킬을 읽고 CLI를 사용할 수 있습니다. 새 `evidence_freshness`는 선택한 파일이 검증 기록 이후 바뀌었는지 비교하며 같은 MCP 서버에 포함됩니다. [새 모델 평가 스킬의 사용 예](prompts/MODEL-EVAL.md)
 

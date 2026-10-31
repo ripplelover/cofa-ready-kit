@@ -55,7 +55,7 @@ Codex CLI에서는 `$cofa-triage`처럼 명시적으로 호출할 수 있습니�
 
 ## 4. 선택형 로컬 MCP
 
-Skill은 작업 지침이고, MCP는 AI가 호출할 수 있는 도구 연결입니다. 이 키트의 MCP는 같은 작업 환경에서 Python 프로세스로 실행됩니다. HTTP 서버, 포트 공개, 외부 계정, API 키가 없습니다. 버전 1.3.0의 제공 도구는 여섯 가지입니다.
+Skill은 작업 지침이고, MCP는 AI가 호출할 수 있는 도구 연결입니다. 이 키트의 `cofa_local`은 같은 작업 환경에서 Python 프로세스로 실행됩니다. 이 로컬 서버에는 HTTP 서버, 포트 공개, 외부 계정, API 키가 없습니다. 별도로 선택하는 `openai_docs`는 원격 서버입니다. 버전 1.3.0의 로컬 제공 도구는 여섯 가지입니다.
 
 **도구를 매번 직접 고를 필요는 없습니다.** MCP가 연결돼 현재 도구 목록에 나타나면 Codex가 설명과 입력 조건을 보고 필요한 도구를 선택하도록 요청할 수 있습니다. README의 시작 요청에 이 지시를 포함했습니다. 키트를 `git clone`하는 것과 MCP 연결은 별개이며, 미연결이면 CLI·기존 도구로 진행합니다. 일반적인 스킬 선택과 MCP 도구 선택 방식은 OpenAI의 [스킬 활성화](https://developers.openai.com/plugins/concepts/skills)와 [도구 호출](https://developers.openai.com/plugins/concepts/mcp-server) 문서를 확인했습니다. 실제 Cofa에서의 탐색·연결·선택 성공을 실측했다는 뜻은 아닙니다.
 
@@ -86,6 +86,8 @@ python3 .cofa-kit/scripts/install.py --workspace . --mcp-json
 
 현재 환경의 **실제 Python 경로와 실제 작업 경로**가 들어간 JSON을 출력합니다. 출력에는 `mcpServers.cofa_local.command`와 `args`가 들어갑니다. 참가자는 사전 체험에서 `mcpServers` 최상위 이름을 확인했습니다. 이는 전체 필드·HTTP 연결 지원까지 확인했다는 뜻은 아닙니다. PDF는 MCP 탭의 JSON 편집·저장을 설명합니다. 기존 `mcpServers` 안에 `cofa_local`만 추가하고, 빈 같은 구조의 설정이면 생성된 전체 JSON을 사용하세요. 실제 형식이 다르면 Cofa Helper로 확인하고 그동안 CLI를 사용합니다. 기존 설정을 지우거나 `mcpServers`를 두 번 중첩하지 마세요.
 
+공식 문서 서버도 함께 준비하려면 위 명령 끝에 `--with-openai-docs`를 붙입니다. 로컬 `cofa_local`과 원격 `openai_docs` 두 항목을 출력할 뿐, 저장·연결·설치는 하지 않습니다. 원격 HTTP `url` 지원이 확인되고 참가자가 선택한 서버만 추가합니다. 연결 후에는 [SCENARIO의 선택 기준](../prompts/SCENARIO.md#필요한-스킬과-mcp-도구-고르기)으로 필요한 스킬·MCP 도구를 고르게 합니다. Docs 서버에는 시험 자료 없이 일반 공개 기술 질의만 보냅니다. [두 서버 구성 안내](MCP-PLUGINS.md#3-여러-서버를-준비하고-필요한-도구만-선택하기)
+
 ### 일반 Codex CLI에서 사용하는 표준 명령
 
 제공 환경이 이 CLI 등록 방식을 안내하거나 허용할 때만 사용할 수 있는 대안입니다.
@@ -113,7 +115,7 @@ python3 .cofa-kit/scripts/cofa.py profile .cofa-kit/examples/defects.csv
 python3 .cofa-kit/scripts/cofa.py check --workspace .
 ```
 
-설정에 2–3분 이상 막히면 CLI로 진행하는 것이 운영상 유리하다는 제안입니다. 연결 성공 자체가 평가 목표라는 근거는 없습니다. 원격 MCP를 무더기로 연결하면 문제나 코드가 요청에 실릴 수 있으므로, 이 키트의 시험 기본 구성에는 원격 MCP를 넣지 않았습니다. [OpenAI Docs 선택형 후보와 플러그인](MCP-PLUGINS.md)은 별도로 검토하며 제공 환경의 지원·실제 필요·보낼 질의를 먼저 확인합니다.
+설정에 2–3분 이상 막히면 CLI로 진행하는 것이 운영상 유리하다는 제안입니다. 연결 성공 자체가 평가 목표라는 근거는 없습니다. 설정 생성기의 기본 출력은 로컬 서버만 포함하며 원격 Docs 서버는 명시적으로 선택할 때만 추가합니다. [OpenAI Docs와 플러그인](MCP-PLUGINS.md)은 제공 환경의 지원·실제 필요·보낼 질의를 먼저 확인합니다. 여러 도구가 연결돼 있어도 현재 과제에 필요한 도구만 사용합니다.
 
 ## 5. Browser 확인
 

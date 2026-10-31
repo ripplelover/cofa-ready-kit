@@ -1,4 +1,4 @@
-"""Copy only focused skills into a chosen workspace; never edit Codex config."""
+"""Copy focused skills or print optional MCP settings; never edit Codex config."""
 import argparse
 import json
 from pathlib import Path
@@ -45,24 +45,32 @@ def install(workspace, dry_run=False):
             'next': 'Use the provided Codex; if discovery fails, ask it to read the SKILL.md path directly.'}
 
 
-def mcp_config(workspace):
+def mcp_config(workspace, with_openai_docs=False):
     root = Path(workspace).resolve(strict=True)
     if not root.is_dir():
         raise ValueError('workspace must be a directory')
-    return {'mcpServers': {'cofa_local': {
+    servers = {'cofa_local': {
         'command': sys.executable,
         'args': ['-u', str(KIT / 'scripts' / 'mcp_server.py'), '--workspace', str(root)]
-    }}}
+    }}
+    if with_openai_docs:
+        servers['openai_docs'] = {'url': 'https://developers.openai.com/mcp'}
+    return {'mcpServers': servers}
 
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--workspace', required=True)
     p.add_argument('--dry-run', action='store_true')
-    p.add_argument('--mcp-json', action='store_true', help='print optional stdio server JSON; make no changes')
+    p.add_argument('--mcp-json', action='store_true', help='print optional MCP server JSON; make no changes')
+    p.add_argument('--with-openai-docs', action='store_true',
+                   help='include the remote public OpenAI Docs server in printed JSON; requires --mcp-json')
     args = p.parse_args()
+    if args.with_openai_docs and not args.mcp_json:
+        p.error('--with-openai-docs requires --mcp-json; no settings or skills were changed')
     try:
-        result = mcp_config(args.workspace) if args.mcp_json else install(args.workspace, args.dry_run)
+        result = (mcp_config(args.workspace, with_openai_docs=args.with_openai_docs)
+                  if args.mcp_json else install(args.workspace, args.dry_run))
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
     except (OSError, ValueError) as exc:
